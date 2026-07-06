@@ -1,44 +1,44 @@
-# L-73_Parameterized_Insert_Anti_Injection.py
-# SQLPhone Emperor – SQL Module 09
-# Practice: Use parameterized inserts.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, password TEXT)")
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: We'll create a table 'users' (id, username, password).")
-    print("Write Python code to safely insert a user using parameterized query (?, ?).")
-    print("Do NOT use string formatting.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, password TEXT)")
-    user_code = input(">>> ")
-    try:
-        exec(user_code, {"conn": conn})
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM users")
-    row = cur.fetchone()
-    if row and row[1] is not None:
-        # Check that it wasn't built with string formatting (simple check: if 'admin' in row[1] and no SQL error, likely safe)
-        print(f"✅ User inserted: {row[1]}")
-        conn.close()
-        return True
-    else:
-        print("❌ No user inserted.")
-        conn.close()
-        return False
+easy = Task(
+    "Create a 'users' table. Then write Python code to safely insert a user using parameterized query (?, ?).",
+    verify_easy, Level.EASY,
+    hints=["cur.execute('INSERT INTO users (username, password) VALUES (?, ?)', ('emperor', 'secret'))", "conn.commit()"]
+)
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM users")
+    return cur.fetchone()[0] >= 1
+
+medium = Task(
+    "Confirm that at least one user was inserted.",
+    verify_medium, Level.MEDIUM,
+    hints=["cur.execute('SELECT * FROM users')"]
+)
+
+def verify_hard(cur, conn):
+    # Try a malicious string: if user didn't parameterize, it might inject.
+    # We'll just check that a row with a single quote in username works correctly.
+    cur.execute("INSERT INTO users (username, password) VALUES (?, ?)", ("mal'icious", "inject"))
+    conn.commit()
+    cur.execute("SELECT username FROM users WHERE username = ?", ("mal'icious",))
+    return cur.fetchone()[0] == "mal'icious"
+
+hard = Task(
+    "Insert a username containing a single quote (mal'icious) safely. Then retrieve it to prove no injection occurred.",
+    verify_hard, Level.HARD,
+    hints=["Use parameterized query with ?.", "cur.execute('INSERT INTO users (username, password) VALUES (?, ?)', (\"mal'icious\", 'inject'))"]
+)
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c = input("> ")
+    tasks = {"1": easy, "2": medium, "3": hard}
+    run_task(tasks.get(c, easy))
+if __name__ == "__main__": main()

@@ -1,55 +1,45 @@
-# L-82_Index_Usage_Strategy.py
-# SQLPhone Emperor – SQL Module 10
-# Practice: Create an index and see the difference.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE big(id INTEGER PRIMARY KEY, value INT)")
+    cur.executemany("INSERT INTO big(value) VALUES (?)", [(i,) for i in range(1000)])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'big' with a column 'value' and insert 1000 rows.")
-    print("Run EXPLAIN QUERY PLAN for a query WHERE value = 500 before and after creating an index.")
-    print("We'll check if the plan changes from SCAN to SEARCH.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    cur.execute("CREATE TABLE big (id INTEGER PRIMARY KEY, value INT)")
-    cur.executemany("INSERT INTO big (value) VALUES (?)", [(i,) for i in range(1000)])
-    conn.commit()
-    user_sql = input("Enter your SQL (include EXPLAIN QUERY PLAN and CREATE INDEX):\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    # Check if index was created
-    cur.execute("SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%'")
-    index_names = [r[0] for r in cur.fetchall()]
-    if not index_names:
-        print("❌ No index created. Use CREATE INDEX.")
-        conn.close()
-        return False
-    # Get query plan for the search
+easy = Task(
+    "We have 'big' table with 1000 rows. Run EXPLAIN QUERY PLAN for SELECT * FROM big WHERE value = 500 before creating an index.",
+    verify_easy, Level.EASY,
+    hints=["EXPLAIN QUERY PLAN SELECT * FROM big WHERE value = 500;"]
+)
+
+def verify_medium(cur, conn):
+    cur.execute("CREATE INDEX idx_value ON big(value)")
     cur.execute("EXPLAIN QUERY PLAN SELECT * FROM big WHERE value = 500")
-    plan = cur.fetchall()
-    plan_str = str(plan)
-    if 'USING INDEX' in plan_str or 'SEARCH' in plan_str:
-        print(f"✅ Index used! Plan: {plan}")
-        conn.close()
-        return True
-    else:
-        print(f"❌ Index not used. Plan: {plan}. Check that query matches indexed column.")
-        conn.close()
-        return False
+    plan = str(cur.fetchall())
+    return 'USING INDEX' in plan
+
+medium = Task(
+    "Create an index on the 'value' column, then run EXPLAIN QUERY PLAN again. It should now use the index.",
+    verify_medium, Level.MEDIUM,
+    hints=["CREATE INDEX idx_value ON big(value);", "EXPLAIN QUERY PLAN SELECT * FROM big WHERE value = 500;"]
+)
+
+def verify_hard(cur, conn):
+    cur.execute("DROP INDEX IF EXISTS idx_value")
+    cur.execute("EXPLAIN QUERY PLAN SELECT * FROM big WHERE value = 500")
+    plan = str(cur.fetchall())
+    return 'SCAN TABLE' in plan
+
+hard = Task(
+    "Drop the index and verify the plan reverts to a full table scan.",
+    verify_hard, Level.HARD,
+    hints=["DROP INDEX idx_value;", "EXPLAIN QUERY PLAN ..."]
+)
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c = input("> ")
+    tasks = {"1": easy, "2": medium, "3": hard}
+    run_task(tasks.get(c, easy))
+if __name__ == "__main__": main()

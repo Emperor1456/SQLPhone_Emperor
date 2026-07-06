@@ -1,55 +1,47 @@
-# L-33_FULL_OUTER_JOIN_Simulated.py
-# SQLPhone Emperor – SQL Module 04
-# Practice: Simulate FULL OUTER JOIN.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE A(id INTEGER, val TEXT)")
+    cur.execute("CREATE TABLE B(id INTEGER, val TEXT)")
+    cur.executemany("INSERT INTO A VALUES (?,?)", [(1,'a1'),(2,'a2')])
+    cur.executemany("INSERT INTO B VALUES (?,?)", [(2,'b2'),(3,'b3')])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create tables 'A' (id, val) and 'B' (id, val) with overlapping and non‑overlapping ids.")
-    print("Write a FULL OUTER JOIN simulation using LEFT JOIN + UNION + LEFT JOIN (swapped).")
-    print("The result should contain all rows from both tables, with NULLs where no match.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        # Quick check: count unique ids from both tables
-        cur.execute("SELECT COUNT(DISTINCT id) FROM (SELECT id FROM A UNION SELECT id FROM B)")
-        expected = cur.fetchone()[0]
-        cur.execute("""
-            SELECT id FROM A LEFT JOIN B USING(id)
-            UNION
-            SELECT id FROM B LEFT JOIN A USING(id)
-        """)
-        actual = len(cur.fetchall())
-        if actual == expected:
-            print(f"✅ FULL OUTER JOIN simulation returned {actual} rows, matching expected distinct ids.")
-            conn.close()
-            return True
-        else:
-            print(f"❌ Expected {expected} rows, got {actual}. Check your UNION query.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have tables A and B with some matching and non-matching ids. Simulate a FULL OUTER JOIN using UNION of two LEFT JOINs.",
+            verify_easy, Level.EASY,
+            hints=["SELECT A.id, A.val, B.val FROM A LEFT JOIN B USING(id) UNION SELECT B.id, A.val, B.val FROM B LEFT JOIN A USING(id) WHERE A.id IS NULL;"])
+
+def verify_medium(cur, conn):
+    cur.execute("""
+        SELECT id, A.val AS av, B.val AS bv FROM A LEFT JOIN B USING(id)
+        UNION
+        SELECT id, A.val, B.val FROM B LEFT JOIN A USING(id) WHERE A.id IS NULL
+    """)
+    rows = cur.fetchall()
+    return len(rows) == 3
+
+medium = Task("The result should have exactly 3 rows: id 1 (A only), id 2 (both), id 3 (B only).",
+              verify_medium, Level.MEDIUM,
+              hints=["Check that the UNION doesn't duplicate id 2."])
+
+def verify_hard(cur, conn):
+    cur.execute("""
+        SELECT id, COALESCE(A.val, 'N/A') AS av, COALESCE(B.val, 'N/A') AS bv FROM A LEFT JOIN B USING(id)
+        UNION
+        SELECT id, A.val, B.val FROM B LEFT JOIN A USING(id) WHERE A.id IS NULL
+    """)
+    row = cur.fetchone()
+    return row is not None
+
+hard = Task("Use COALESCE to replace NULLs with 'N/A' in the simulated full outer join.",
+            verify_hard, Level.HARD,
+            hints=["COALESCE(column, 'N/A')"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

@@ -1,54 +1,38 @@
-# L-30_INNER_JOIN.py
-# SQLPhone Emperor – SQL Module 04
-# Practice: INNER JOIN.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE customers(id INTEGER PRIMARY KEY, name TEXT)")
+    cur.execute("CREATE TABLE orders(id INTEGER PRIMARY KEY, customer_id INTEGER, product TEXT)")
+    cur.executemany("INSERT INTO customers VALUES (?,?)", [(1,'Alice'),(2,'Bob'),(3,'Charlie')])
+    cur.executemany("INSERT INTO orders VALUES (?,?,?)", [(1,1,'Pen'),(2,1,'Book'),(3,2,'Eraser')])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create tables 'customers' (id, name) and 'orders' (id, customer_id, product).")
-    print("Insert at least 3 customers and 5 orders, some customers with no orders.")
-    print("Write an INNER JOIN query that returns customer name and product for all orders.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL (DDL + DML + query):\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        # Verify inner join returns only matched rows
-        cur.execute("SELECT COUNT(*) FROM orders")
-        orders = cur.fetchone()[0]
-        cur.execute("""
-            SELECT COUNT(*) FROM customers c
-            INNER JOIN orders o ON c.id = o.customer_id
-        """)
-        join_count = cur.fetchone()[0]
-        if join_count == orders:
-            print(f"✅ INNER JOIN returned {join_count} rows (all orders have matching customers).")
-            conn.close()
-            return True
-        else:
-            print(f"❌ Mismatch: {orders} orders but join returned {join_count}. Ensure all orders link to existing customers.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We'll create 'customers' and 'orders' for you. Now write an INNER JOIN query that returns customer name and product for all orders.",
+            verify_easy, Level.EASY,
+            hints=["SELECT c.name, o.product FROM customers c JOIN orders o ON c.id = o.customer_id;"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT c.name, o.product FROM customers c INNER JOIN orders o ON c.id = o.customer_id")
+    return len(cur.fetchall()) == 3
+
+medium = Task("Your join should return exactly 3 rows (matching orders).",
+              verify_medium, Level.MEDIUM,
+              hints=["Check your ON condition: c.id = o.customer_id"])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT c.name, COUNT(o.id) as order_count FROM customers c INNER JOIN orders o ON c.id = o.customer_id GROUP BY c.id")
+    rows = cur.fetchall()
+    return len(rows) == 2 and any(r[1]==2 for r in rows)
+
+hard = Task("Group by customer and show the count of orders per customer using INNER JOIN.",
+            verify_hard, Level.HARD,
+            hints=["SELECT c.name, COUNT(o.id) FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.id;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

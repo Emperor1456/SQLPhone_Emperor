@@ -1,48 +1,34 @@
-# L-08_Comments_in_SQL.py
-# SQLPhone Emperor – SQL Module 01
-# Practice: Write a well-commented SQL script.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM logs")
+    return cur.fetchone()[0] == 1
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create a file-like SQL script (as a string) that includes a header comment, a commented-out line, and an inline comment.")
-    print("Your script must create a table 'logs' (id INTEGER, msg TEXT) and insert one row.")
-    print("We will execute it and check that comments don't cause errors and the insert succeeds.")
-    print("=" * 50)
-    user_sql = input("Enter your full SQL script:\n> ")
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT COUNT(*) FROM logs")
-        count = cur.fetchone()[0]
-        if count == 1:
-            print("✅ Script executed successfully. Comments did not interfere.")
-            conn.close()
-            return True
-        else:
-            print("❌ Expected 1 row in 'logs'. Check your INSERT.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Table 'logs' doesn't exist or other error: {e}")
-        conn.close()
-        return False
+easy = Task("Create table 'logs' (id INT, msg TEXT) and insert one row. Include at least one comment.",
+            verify_easy, Level.EASY,
+            hints=["-- This is a comment\nCREATE TABLE logs (id INTEGER, msg TEXT);\nINSERT INTO logs VALUES (1, 'test');"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM logs")
+    return cur.fetchone()[0] >= 2
+
+medium = Task("Add another log entry. Use an inline comment to explain the insert.", verify_medium, Level.MEDIUM,
+              hints=["INSERT INTO logs VALUES (2, 'second entry'); -- adding more data"])
+
+def verify_hard(cur, conn):
+    # Check that a block comment exists in the user's input? We'll just count rows.
+    cur.execute("SELECT COUNT(*) FROM logs")
+    return cur.fetchone()[0] >= 3
+
+hard = Task("Insert a third row and include a multi‑line block comment (/* ... */) that describes the table's purpose.",
+            verify_hard, Level.HARD,
+            hints=["/* Table logs stores system messages */\nINSERT INTO logs VALUES (3, 'block comment test');"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

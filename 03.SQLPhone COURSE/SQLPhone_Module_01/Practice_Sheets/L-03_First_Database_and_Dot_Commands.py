@@ -1,65 +1,37 @@
-# L-03_First_Database_and_Dot_Commands.py
-# SQLPhone Emperor – SQL Module 01
-# Practice: Create a database file and inspect it.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3, os
+def verify_easy(cur, conn):
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='people'")
+    return cur.fetchone() is not None
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create a database file 'first.db' with a table 'people' (name TEXT, age INT). Insert one person. Use dot-commands to inspect.")
-    print("We'll simulate .schema and .tables using Python.")
-    print("=" * 50)
-    db_name = "first.db"
-    # Remove if exists for fresh start
-    if os.path.exists(db_name):
-        os.remove(db_name)
-    conn = sqlite3.connect(db_name)
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    # Verify that table people exists
-    try:
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='people'")
-        row = cur.fetchone()
-        if not row:
-            print("❌ Table 'people' not found.")
-            conn.close()
-            return False
-        # Check if at least one row inserted
-        cur.execute("SELECT * FROM people")
-        data = cur.fetchall()
-        if len(data) == 0:
-            print("❌ No rows in people. Insert at least one row.")
-            conn.close()
-            return False
-        # Show schema
-        cur.execute("SELECT sql FROM sqlite_master WHERE name='people'")
-        schema = cur.fetchone()[0]
-        print(f"✅ Table 'people' exists. Schema:\n{schema}")
-        print(f"Rows: {data}")
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
-    finally:
-        if os.path.exists(db_name):
-            os.remove(db_name)  # clean up
+easy = Task("Create a table 'people' with columns 'name' TEXT and 'age' INT.", verify_easy, Level.EASY,
+            hints=["CREATE TABLE people (name TEXT, age INT);"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='people'")
+    if not cur.fetchone(): return False
+    cur.execute("SELECT * FROM people")
+    return len(cur.fetchall()) >= 1
+
+medium = Task("Insert at least one person into 'people' and SELECT all rows.", verify_medium, Level.MEDIUM,
+              hints=["INSERT INTO people VALUES ('Emperor', 18);","SELECT * FROM people;"])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT sql FROM sqlite_master WHERE name='people'")
+    schema = cur.fetchone()
+    if not schema: return False
+    cur.execute("PRAGMA table_info('people')")
+    cols = cur.fetchall()
+    return len(cols) >= 2 and 'people' in schema[0]
+
+hard = Task("Display the schema of 'people' using a dot-command (simulate by querying sqlite_master).", verify_hard, Level.HARD,
+            hints=["SELECT sql FROM sqlite_master WHERE name='people';","Use .schema in CLI, but we simulate."])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

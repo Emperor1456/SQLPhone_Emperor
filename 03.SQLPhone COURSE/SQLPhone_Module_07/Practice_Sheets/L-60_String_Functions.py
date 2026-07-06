@@ -1,50 +1,37 @@
-# L-60_String_Functions.py
-# SQLPhone Emperor – SQL Module 07
-# Practice: String manipulation.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE users(id INTEGER PRIMARY KEY, full_name TEXT, email TEXT)")
+    cur.executemany("INSERT INTO users VALUES (?,?,?)", [(1,'Alice Smith','alice@test.com'),(2,'Bob Brown','bob@test.com')])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'users' (id, full_name, email).")
-    print("Insert at least 3 rows.")
-    print("Write a query that extracts the first 3 characters of the name and appends '...' (use SUBSTR and ||).")
-    print("Also convert email to lowercase using LOWER().")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        # Check that at least one row has a valid transformed email and short name
-        cur.execute("SELECT SUBSTR(full_name, 1, 3) || '...', LOWER(email) FROM users LIMIT 1")
-        row = cur.fetchone()
-        if row and len(row[0]) == 6 and row[1].islower():
-            print(f"✅ Short name: {row[0]}, Email: {row[1]}")
-            conn.close()
-            return True
-        else:
-            print(f"❌ String transformation not as expected. Row: {row}")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have 'users'. Write a query that extracts the first 3 characters of the name and appends '...' (use SUBSTR and ||).",
+            verify_easy, Level.EASY,
+            hints=["SELECT SUBSTR(full_name, 1, 3) || '...' FROM users;"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT SUBSTR(full_name, 1, 3) || '...' FROM users")
+    rows = cur.fetchall()
+    return rows[0][0] == 'Ali...'
+
+medium = Task("First row should show 'Ali...'.",
+              verify_medium, Level.MEDIUM,
+              hints=["Use SUBSTR(full_name, 1, 3) || '...'."])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT UPPER(email) FROM users WHERE LENGTH(full_name) > 10")
+    rows = cur.fetchall()
+    return len(rows) >= 1 and rows[0][0] == 'ALICE@TEST.COM'
+
+hard = Task("Show uppercase email of users whose full_name length > 10.",
+            verify_hard, Level.HARD,
+            hints=["SELECT UPPER(email) FROM users WHERE LENGTH(full_name) > 10;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

@@ -1,51 +1,48 @@
-# L-38_Foreign_Key_Enforcement.py
-# SQLPhone Emperor – SQL Module 04
-# Practice: Test foreign key actions.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
-
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create tables 'categories' (id, name) and 'items' (id, name, cat_id) with FK ON DELETE CASCADE.")
-    print("Enable foreign keys. Insert a category and an item in that category.")
-    print("Delete the category; the item should be deleted automatically.")
-    print("Show by querying items after deletion (should be empty).")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
+def verify_easy(cur, conn):
     cur.execute("PRAGMA foreign_keys = ON")
-    user_sql = input("Enter your SQL:\n> ")
+    cur.execute("CREATE TABLE categories(id INTEGER PRIMARY KEY, name TEXT)")
+    cur.execute("CREATE TABLE items(id INTEGER PRIMARY KEY, name TEXT, cat_id INTEGER, FOREIGN KEY(cat_id) REFERENCES categories(id) ON DELETE CASCADE)")
+    return True
+
+easy = Task("Create 'categories' and 'items' with ON DELETE CASCADE foreign key.",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE categories(id INTEGER PRIMARY KEY, name TEXT);",
+                   "CREATE TABLE items(id INTEGER PRIMARY KEY, name TEXT, cat_id INTEGER, FOREIGN KEY(cat_id) REFERENCES categories(id) ON DELETE CASCADE);"])
+
+def verify_medium(cur, conn):
+    cur.execute("PRAGMA foreign_keys = ON")
+    cur.execute("INSERT INTO categories VALUES (1,'C1')")
+    cur.execute("INSERT INTO items VALUES (1,'I1',1)")
+    cur.execute("DELETE FROM categories WHERE id=1")
+    cur.execute("SELECT COUNT(*) FROM items")
+    return cur.fetchone()[0] == 0
+
+medium = Task("Insert a category and an item, then delete the category. Item should be cascade-deleted.",
+              verify_medium, Level.MEDIUM,
+              hints=["INSERT INTO categories VALUES (1,'C1'); INSERT INTO items VALUES (1,'I1',1); DELETE FROM categories WHERE id=1; SELECT * FROM items; -- should be empty"])
+
+def verify_hard(cur, conn):
+    cur.execute("PRAGMA foreign_keys = ON")
+    cur.execute("INSERT INTO categories VALUES (2,'C2')")
+    cur.execute("INSERT INTO items VALUES (2,'I2',2)")
     try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        # Check that the item was cascade deleted
+        cur.execute("DELETE FROM categories WHERE id=2")
         cur.execute("SELECT COUNT(*) FROM items")
-        cnt = cur.fetchone()[0]
-        if cnt == 0:
-            print("✅ Item deleted via CASCADE. Foreign key action works.")
-            conn.close()
-            return True
-        else:
-            print(f"❌ Expected 0 items, but {cnt} remain. Check ON DELETE CASCADE and PRAGMA.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
+        return cur.fetchone()[0] == 0
+    except:
         return False
+
+hard = Task("Test CASCADE again: insert a different category/item, delete category, verify item gone.",
+            verify_hard, Level.HARD,
+            hints=["Repeat the pattern: INSERT, then DELETE, then check."])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

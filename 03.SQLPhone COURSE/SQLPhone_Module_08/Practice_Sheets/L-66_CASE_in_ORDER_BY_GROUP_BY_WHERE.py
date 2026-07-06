@@ -1,49 +1,37 @@
-# L-66_CASE_in_ORDER_BY_GROUP_BY_WHERE.py
-# SQLPhone Emperor – SQL Module 08
-# Practice: CASE in other clauses.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE tickets(id INTEGER PRIMARY KEY, severity TEXT, created_date TEXT)")
+    cur.executemany("INSERT INTO tickets(severity, created_date) VALUES (?,?)", [('medium','2026-01-01'),('critical','2026-01-02'),('high','2026-01-03'),('low','2026-01-04')])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'tickets' (id, severity TEXT, created_date).")
-    print("Insert rows with severity 'critical', 'high', 'medium', 'low'.")
-    print("Write a query that orders by severity: critical first, then high, then rest.")
-    print("Use CASE in ORDER BY.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT severity FROM tickets ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 ELSE 3 END")
-        rows = cur.fetchall()
-        if rows and rows[0][0] == 'critical':
-            print(f"✅ Order correct. First: {rows[0][0]}")
-            conn.close()
-            return True
-        else:
-            print(f"❌ Ordering not as expected. First row: {rows[0] if rows else 'none'}")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have 'tickets'. Write a query that orders by severity: critical first, then high, then medium, then low using CASE in ORDER BY.",
+            verify_easy, Level.EASY,
+            hints=["SELECT * FROM tickets ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END;"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT severity FROM tickets ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END")
+    rows = [r[0] for r in cur.fetchall()]
+    return rows == ['critical','high','medium','low']
+
+medium = Task("The order must be: critical, high, medium, low.",
+              verify_medium, Level.MEDIUM,
+              hints=["Check the numeric mapping."])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT CASE WHEN severity IN ('critical','high') THEN 'urgent' ELSE 'normal' END AS urgency, COUNT(*) FROM tickets GROUP BY urgency")
+    rows = cur.fetchall()
+    return len(rows) == 2
+
+hard = Task("Group by urgency (critical/high -> 'urgent', others -> 'normal') and count tickets per urgency.",
+            verify_hard, Level.HARD,
+            hints=["SELECT CASE WHEN severity IN ('critical','high') THEN 'urgent' ELSE 'normal' END, COUNT(*) FROM tickets GROUP BY 1;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

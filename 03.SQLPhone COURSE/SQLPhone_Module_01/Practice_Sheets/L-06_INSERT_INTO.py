@@ -1,49 +1,36 @@
-# L-06_INSERT_INTO.py
-# SQLPhone Emperor – SQL Module 01
-# Practice: Insert single and multiple rows.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM cities")
+    return cur.fetchone()[0] == 3
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'cities' (id INTEGER PRIMARY KEY, name TEXT NOT NULL, country TEXT, population INTEGER).")
-    print("Insert 3 rows in one statement. Then insert one more row, omitting id (auto-increment).")
-    print("Use RETURNING to get the generated id for the last insert.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL (multiple statements separated by ;):\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT COUNT(*) FROM cities")
-        count = cur.fetchone()[0]
-        if count != 4:
-            print(f"❌ Expected 4 rows, got {count}.")
-            conn.close()
-            return False
-        cur.execute("SELECT id FROM cities ORDER BY id DESC LIMIT 1")
-        last_id = cur.fetchone()[0]
-        print(f"✅ All 4 rows inserted. Last inserted id (via RETURNING or auto): {last_id}")
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("Create table 'cities' (id INT PK, name TEXT NOT NULL, country TEXT, population INT). Insert 3 rows in one statement.",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE cities (id INTEGER PRIMARY KEY, name TEXT NOT NULL, country TEXT, population INTEGER);",
+                   "INSERT INTO cities (name, country, population) VALUES ('Tokyo','Japan',13929286), ('Delhi','India',16787941), ('Shanghai','China',24183300);"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM cities")
+    return cur.fetchone()[0] == 4
+
+medium = Task("Add one more city, this time specifying only name and country (let population be NULL). Then SELECT all.",
+              verify_medium, Level.MEDIUM,
+              hints=["INSERT INTO cities (name, country) VALUES ('London','UK');","SELECT * FROM cities;"])
+
+def verify_hard(cur, conn):
+    # after inserting a row, use RETURNING to get the id
+    cur.execute("SELECT COUNT(*) FROM cities")
+    return cur.fetchone()[0] >= 5
+
+hard = Task("Insert a fifth city using a VALUES clause and use RETURNING id to see the generated ID.",
+            verify_hard, Level.HARD,
+            hints=["INSERT INTO cities (name, country, population) VALUES ('Paris','France',2161000) RETURNING id;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

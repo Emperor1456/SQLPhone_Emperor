@@ -1,49 +1,39 @@
-# L-53_PRIMARY_KEY_and_Composite_Keys.py
-# SQLPhone Emperor – SQL Module 06
-# Practice: Composite primary key.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE memberships(user_id INTEGER, group_id INTEGER, joined_date TEXT, PRIMARY KEY(user_id, group_id))")
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create a junction table 'memberships' with columns user_id, group_id, joined_date.")
-    print("Use PRIMARY KEY (user_id, group_id) to prevent duplicate memberships.")
-    print("Insert two rows, then try inserting a duplicate pair (should fail).")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
+easy = Task("Create a junction table 'memberships' with composite primary key (user_id, group_id).",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE memberships(user_id INTEGER, group_id INTEGER, joined_date TEXT, PRIMARY KEY(user_id, group_id));"])
+
+def verify_medium(cur, conn):
+    cur.execute("INSERT INTO memberships VALUES (1, 1, date('now'))")
+    cur.execute("INSERT INTO memberships VALUES (1, 2, date('now'))")
     try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
+        cur.execute("INSERT INTO memberships VALUES (1, 1, date('now'))")
         return False
-    try:
-        # Check composite key enforcement
-        try:
-            cur.execute("INSERT INTO memberships (user_id, group_id, joined_date) VALUES (1, 1, date('now'))")
-            cur.execute("INSERT INTO memberships (user_id, group_id, joined_date) VALUES (1, 1, date('now'))")
-            print("❌ Duplicate composite key not rejected.")
-            conn.close()
-            return False
-        except sqlite3.IntegrityError:
-            print("✅ Duplicate (user_id, group_id) correctly rejected.")
-            conn.close()
-            return True
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+    except sqlite3.IntegrityError:
+        return True
+
+medium = Task("Insert two valid rows, then try inserting a duplicate (1,1) pair. Should be rejected.",
+              verify_medium, Level.MEDIUM,
+              hints=["First INSERT (1,1), then (1,2), then (1,1) again."])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM memberships")
+    return cur.fetchone()[0] == 2
+
+hard = Task("Confirm only 2 rows exist (duplicate rejected).",
+            verify_hard, Level.HARD,
+            hints=["SELECT COUNT(*) FROM memberships;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

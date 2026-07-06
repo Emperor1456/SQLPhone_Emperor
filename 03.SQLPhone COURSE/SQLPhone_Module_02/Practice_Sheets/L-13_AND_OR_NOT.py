@@ -1,51 +1,35 @@
-# L-13_AND_OR_NOT.py
-# SQLPhone Emperor – SQL Module 02
-# Practice: Combine conditions with AND, OR, NOT.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM employees")
+    return cur.fetchone()[0] >= 4
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'employees' (id, name, dept, salary, status).")
-    print("Insert at least 4 rows covering different departments, salaries, statuses (active/inactive).")
-    print("Write a SELECT to find active employees in 'Sales' or 'Marketing' with salary > 50000.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("""
-            SELECT COUNT(*) FROM employees
-            WHERE status='active' AND (dept='Sales' OR dept='Marketing') AND salary>50000
-        """)
-        count = cur.fetchone()[0]
-        if count > 0:
-            print(f"✅ Query found {count} employees meeting the criteria.")
-            conn.close()
-            return True
-        else:
-            print("❌ No matching rows. Ensure data includes active Sales/Marketing employees with salary>50000.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("Create table 'employees' (id, name, dept, salary, status). Insert at least 4 rows with different departments, salaries, and statuses (active/inactive).",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, dept TEXT, salary REAL, status TEXT);",
+                   "INSERT INTO employees (name, dept, salary, status) VALUES ('Alice','Sales',60000,'active'),('Bob','Sales',45000,'active'),('Charlie','Marketing',70000,'active'),('Dave','Marketing',50000,'inactive');"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM employees WHERE status='active' AND (dept='Sales' OR dept='Marketing') AND salary > 50000")
+    return cur.fetchone()[0] > 0
+
+medium = Task("Find active employees in Sales or Marketing with salary > 50000.",
+              verify_medium, Level.MEDIUM,
+              hints=["SELECT * FROM employees WHERE status='active' AND (dept='Sales' OR dept='Marketing') AND salary > 50000;"])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM employees WHERE NOT (status='inactive' OR salary <= 50000 OR dept NOT IN ('Sales','Marketing'))")
+    return cur.fetchone()[0] > 0
+
+hard = Task("Rewrite the same query using NOT to negate the opposite conditions.",
+            verify_hard, Level.HARD,
+            hints=["WHERE NOT (status='inactive' OR salary <= 50000 OR dept NOT IN ('Sales','Marketing'))"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

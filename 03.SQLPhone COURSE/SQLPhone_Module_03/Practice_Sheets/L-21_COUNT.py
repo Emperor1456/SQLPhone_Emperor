@@ -1,56 +1,39 @@
-# L-21_COUNT.py
-# SQLPhone Emperor – SQL Module 03
-# Practice: COUNT rows.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM employees")
+    return cur.fetchone()[0] >= 4
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'employees' (id, name, department, phone).")
-    print("Insert at least 4 rows; leave phone NULL for one row.")
-    print("Write queries:")
-    print("1. Total number of employees (COUNT(*)).")
-    print("2. Number of employees with a phone (COUNT(phone)).")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL (include both queries separated by ;):\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        # Check table exists
-        cur.execute("SELECT COUNT(*) FROM employees")
-        total = cur.fetchone()[0]
-        if total < 4:
-            print("❌ Need at least 4 rows.")
-            conn.close()
-            return False
-        cur.execute("SELECT COUNT(phone) FROM employees")
-        phone_count = cur.fetchone()[0]
-        if phone_count >= total:
-            print("❌ At least one row should have phone NULL to see difference.")
-            conn.close()
-            return False
-        print(f"✅ Total employees: {total}, with phone: {phone_count}.")
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("Create table 'employees' (id, name, department, phone). Insert at least 4 rows; leave phone NULL for one row.",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, phone TEXT);",
+                   "INSERT INTO employees (name, department, phone) VALUES ('A','Sales','123'),('B','HR',NULL),('C','Sales','456'),('D','HR','789');"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM employees")
+    total = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(phone) FROM employees")
+    phone = cur.fetchone()[0]
+    return phone < total
+
+medium = Task("Write queries to show total number of employees (COUNT(*)) and number of employees with a phone (COUNT(phone)).",
+              verify_medium, Level.MEDIUM,
+              hints=["SELECT COUNT(*) FROM employees; SELECT COUNT(phone) FROM employees;"])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT department, COUNT(*) FROM employees GROUP BY department")
+    rows = cur.fetchall()
+    return len(rows) >= 2
+
+hard = Task("Show the number of employees per department using GROUP BY and COUNT.",
+            verify_hard, Level.HARD,
+            hints=["SELECT department, COUNT(*) FROM employees GROUP BY department;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

@@ -1,53 +1,36 @@
-# L-14_ORDER_BY.py
-# SQLPhone Emperor – SQL Module 02
-# Practice: Sort query results.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM scores")
+    return cur.fetchone()[0] >= 4
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'scores' (player TEXT, score INTEGER, level INTEGER).")
-    print("Insert at least 4 rows with varied scores and levels.")
-    print("Write a query that returns all columns sorted by level DESC, then score DESC.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT * FROM scores ORDER BY level DESC, score DESC")
-        rows = cur.fetchall()
-        if len(rows) < 4:
-            print("❌ Need at least 4 rows.")
-            conn.close()
-            return False
-        levels = [r[2] for r in rows]
-        if levels == sorted(levels, reverse=True):
-            print(f"✅ Query returned {len(rows)} rows, sorted by level DESC then score DESC.")
-            conn.close()
-            return True
-        else:
-            print("❌ Sorting not as expected. Check your ORDER BY clause.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("Create table 'scores' (player TEXT, score INTEGER, level INTEGER). Insert at least 4 rows with varied scores and levels.",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE scores (player TEXT, score INTEGER, level INTEGER);",
+                   "INSERT INTO scores VALUES ('A',100,2),('B',200,1),('C',150,3),('D',200,2);"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT * FROM scores ORDER BY level DESC, score DESC")
+    rows = cur.fetchall()
+    return len(rows) >= 4 and rows[0][2] >= rows[1][2]
+
+medium = Task("Sort all columns by level DESC, then score DESC.",
+              verify_medium, Level.MEDIUM,
+              hints=["SELECT * FROM scores ORDER BY level DESC, score DESC;"])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT player, score*level AS weighted FROM scores ORDER BY weighted DESC")
+    return len(cur.fetchall()) >= 4
+
+hard = Task("Add a computed column 'weighted = score * level' and sort by that descending.",
+            verify_hard, Level.HARD,
+            hints=["SELECT player, score*level AS weighted FROM scores ORDER BY weighted DESC;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

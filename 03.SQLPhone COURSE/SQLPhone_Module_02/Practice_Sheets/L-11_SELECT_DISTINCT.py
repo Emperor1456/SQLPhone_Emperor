@@ -1,103 +1,41 @@
-# L-11_SELECT_DISTINCT.py
-# SQLPhone Emperor – SQL Module 02
-# Practice: Using SELECT DISTINCT.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM orders")
+    return cur.fetchone()[0] >= 4
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'orders' (id, customer_name, city, country).")
-    print("Insert multiple rows, some with duplicate city/country pairs.")
-    print("Write a query that returns all unique city/country pairs.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL (DDL + INSERT + query):\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
+easy = Task("Create table 'orders' (id, customer_name, city, country). Insert at least 4 rows, some with duplicate city/country pairs.",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_name TEXT, city TEXT, country TEXT);",
+                   "INSERT INTO orders (customer_name, city, country) VALUES ('A','Berlin','Germany'),('B','Berlin','Germany'),('C','Paris','France'),('D','Madrid','Spain');"])
 
-    try:
-        cur.execute("SELECT COUNT(*) FROM orders")
-        total = cur.fetchone()[0]
-        if total < 2:
-            print("❌ Need at least 2 rows.")
-            conn.close()
-            return False
-        cur.execute("SELECT COUNT(*) FROM (SELECT DISTINCT city, country FROM orders)")
-        unique = cur.fetchone()[0]
-        if unique >= total:
-            print("❌ No duplicate city/country pairs found. Insert at least one duplicate pair.")
-            conn.close()
-            return False
-        else:
-            print(f"✅ Table has {total} rows, {unique} unique city/country pairs.")
-            print("Your DISTINCT query should return the unique ones.")
-            conn.close()
-            return True
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+def verify_medium(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM (SELECT DISTINCT city, country FROM orders)")
+    unique = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM orders")
+    total = cur.fetchone()[0]
+    return unique < total
+
+medium = Task("Write a query that returns all unique city/country pairs using SELECT DISTINCT.",
+              verify_medium, Level.MEDIUM,
+              hints=["SELECT DISTINCT city, country FROM orders;"])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT COUNT(DISTINCT city || country) FROM orders")
+    distinct_count = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM orders")
+    total = cur.fetchone()[0]
+    return distinct_count < total
+
+hard = Task("Count the number of distinct city/country pairs using COUNT(DISTINCT ...).",
+            verify_hard, Level.HARD,
+            hints=["SELECT COUNT(DISTINCT city || country) FROM orders;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()# L-12_WHERE_Clause.py
-# SQLPhone Emperor – SQL Module 02
-# Practice: Filter rows with comparison operators.
-
-import sqlite3
-
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'products' (id, name, price, stock).")
-    print("Insert at least 3 rows with varied prices and stocks.")
-    print("Write a SELECT that returns products with price > 20 AND stock > 0.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL (DDL + DML + query):\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT COUNT(*) FROM products WHERE price > 20 AND stock > 0")
-        count = cur.fetchone()[0]
-        if count > 0:
-            print(f"✅ Query found {count} matching products.")
-            conn.close()
-            return True
-        else:
-            print("❌ No rows satisfy price > 20 AND stock > 0. Adjust data or query.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
-
-def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

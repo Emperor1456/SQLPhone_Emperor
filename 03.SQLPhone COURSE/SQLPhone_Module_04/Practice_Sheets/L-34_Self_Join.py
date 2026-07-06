@@ -1,57 +1,37 @@
-# L-34_Self_Join.py
-# SQLPhone Emperor – SQL Module 04
-# Practice: Self‑join.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE staff(id INTEGER PRIMARY KEY, name TEXT, manager_id INTEGER)")
+    cur.executemany("INSERT INTO staff VALUES (?,?,?)", [(1,'Alice',NULL),(2,'Bob',1),(3,'Charlie',1),(4,'Dave',2)])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'staff' (id, name, manager_id).")
-    print("Insert rows forming a hierarchy: some employees have a manager (manager_id points to another staff.id).")
-    print("Write a self‑join query that displays employee name and their manager's name.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT COUNT(*) FROM staff")
-        if cur.fetchone()[0] < 3:
-            print("❌ Need at least 3 staff rows.")
-            conn.close()
-            return False
-        cur.execute("""
-            SELECT e.name, m.name
-            FROM staff e
-            LEFT JOIN staff m ON e.manager_id = m.id
-        """)
-        rows = cur.fetchall()
-        if rows:
-            print(f"✅ Self‑join returned {len(rows)} rows. Sample: {rows[0]}")
-            conn.close()
-            return True
-        else:
-            print("❌ Self‑join returned no rows. Check manager_id values.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We've created 'staff' with a self-referencing manager_id. Write a self‑join to display each employee's name and their manager's name.",
+            verify_easy, Level.EASY,
+            hints=["SELECT e.name AS employee, m.name AS manager FROM staff e LEFT JOIN staff m ON e.manager_id = m.id;"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT e.name, m.name FROM staff e LEFT JOIN staff m ON e.manager_id = m.id")
+    rows = cur.fetchall()
+    return len(rows) == 4 and any(r[0]=='Alice' and r[1] is None for r in rows)
+
+medium = Task("Your self‑join must show Alice with NULL manager, and 4 rows total.",
+              verify_medium, Level.MEDIUM,
+              hints=["Use LEFT JOIN so Alice is included."])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT e.name FROM staff e JOIN staff m ON e.manager_id = m.id WHERE m.name = 'Alice'")
+    rows = cur.fetchall()
+    return {r[0] for r in rows} == {'Bob', 'Charlie'}
+
+hard = Task("Find employees whose manager is Alice (using self‑join with INNER JOIN).",
+            verify_hard, Level.HARD,
+            hints=["SELECT e.name FROM staff e JOIN staff m ON e.manager_id = m.id WHERE m.name = 'Alice';"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

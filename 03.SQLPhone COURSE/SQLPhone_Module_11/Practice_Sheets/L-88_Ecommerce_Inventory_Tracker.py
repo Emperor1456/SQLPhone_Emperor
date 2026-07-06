@@ -1,52 +1,54 @@
-# L-88_Ecommerce_Inventory_Tracker.py
-# SQLPhone Emperor – SQL Module 11
-# Practice: E‑commerce inventory.
-
-import sqlite3, os
+import sys, sqlite3, os
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
 DB = "ecommerce.db"
 
-def task():
-    print("=" * 50)
-    print("🧱 PROJECT 2: E‑commerce Inventory Tracker")
-    print("Create tables: Category, Supplier, Product, Sale.")
-    print("Insert data and run your analysis queries.")
-    print("We'll check that tables exist and have records.")
-    print("=" * 50)
-    if os.path.exists(DB):
-        os.remove(DB)
-    user_sql = input("Paste your SQL script:\n> ")
-    conn = sqlite3.connect(DB)
-    cur = conn.cursor()
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        for tbl in ['Category','Supplier','Product','Sale']:
-            cur.execute(f"SELECT COUNT(*) FROM {tbl}")
-            if cur.fetchone()[0] == 0:
-                print(f"❌ Table {tbl} empty.")
-                conn.close()
-                return False
-        print("✅ Database populated. Query it to verify your reports.")
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"❌ {e}")
-        conn.close()
-        return False
+def verify_easy(cur, conn):
+    for tbl in ['Category','Supplier','Product','Sale']:
+        cur.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{tbl}'")
+        if not cur.fetchone():
+            return False
+    return True
+
+easy = Task(
+    "Build the E‑commerce Inventory: create tables Category, Supplier, Product, Sale with foreign keys.",
+    verify_easy, Level.EASY,
+    hints=["CREATE TABLE Category(id INTEGER PRIMARY KEY, name TEXT);",
+           "CREATE TABLE Supplier(id INTEGER PRIMARY KEY, name TEXT, contact TEXT);",
+           "CREATE TABLE Product(id INTEGER PRIMARY KEY, name TEXT, category_id INTEGER, supplier_id INTEGER, unit_price REAL, stock_quantity INTEGER, FOREIGN KEY(category_id) REFERENCES Category(id), FOREIGN KEY(supplier_id) REFERENCES Supplier(id));",
+           "CREATE TABLE Sale(id INTEGER PRIMARY KEY, product_id INTEGER, quantity_sold INTEGER, sale_date TEXT, FOREIGN KEY(product_id) REFERENCES Product(id));"]
+)
+
+def verify_medium(cur, conn):
+    for tbl in ['Category','Supplier','Product','Sale']:
+        cur.execute(f"SELECT COUNT(*) FROM {tbl}")
+        if cur.fetchone()[0] < 3:
+            return False
+    cur.execute("SELECT p.name, SUM(s.quantity_sold) FROM Product p JOIN Sale s ON p.id=s.product_id GROUP BY p.name")
+    return len(cur.fetchall()) > 0
+
+medium = Task(
+    "Insert at least 3 rows per table and write a query showing total units sold per product.",
+    verify_medium, Level.MEDIUM,
+    hints=["Use JOIN and GROUP BY to aggregate sales."]
+)
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT c.name, SUM(p.unit_price * s.quantity_sold) as revenue FROM Category c JOIN Product p ON c.id=p.category_id JOIN Sale s ON p.id=s.product_id GROUP BY c.name ORDER BY revenue DESC LIMIT 1")
+    row = cur.fetchone()
+    return row is not None and row[1] is not None
+
+hard = Task(
+    "Find the category with the highest total revenue (price * quantity_sold across all sales).",
+    verify_hard, Level.HARD,
+    hints=["Join Category -> Product -> Sale, compute revenue, GROUP BY category, ORDER BY revenue DESC LIMIT 1"]
+)
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    if os.path.exists(DB): os.remove(DB)
+    print("1 Easy  2 Medium  3 Hard")
+    c = input("> ")
+    tasks = {"1": easy, "2": medium, "3": hard}
+    run_task(tasks.get(c, easy))
+if __name__ == "__main__": main()

@@ -1,53 +1,37 @@
-# L-61_Concatenation_Operator.py
-# SQLPhone Emperor – SQL Module 07
-# Practice: Concatenation with ||.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE contacts(first_name TEXT, last_name TEXT, title TEXT)")
+    cur.executemany("INSERT INTO contacts VALUES (?,?,?)", [('John','Doe','Mr.'),('Jane','Smith',NULL)])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'contacts' (first_name, last_name, title).")
-    print("Insert rows; some with NULL title.")
-    print("Write a query that concatenates title, first_name, last_name into 'Title First Last'.")
-    print("Handle NULL title with COALESCE to avoid NULL results.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("""
-            SELECT COALESCE(title || ' ', '') || first_name || ' ' || last_name
-            FROM contacts
-            LIMIT 1
-        """)
-        full = cur.fetchone()
-        if full and full[0] and not full[0].startswith('None'):
-            print(f"✅ Concatenated: {full[0]}")
-            conn.close()
-            return True
-        else:
-            print(f"❌ Result is NULL or starts with 'None': {full}")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have 'contacts'. Write a query that concatenates title, first_name, last_name into 'Title First Last'. Handle NULL title with COALESCE.",
+            verify_easy, Level.EASY,
+            hints=["SELECT COALESCE(title || ' ', '') || first_name || ' ' || last_name FROM contacts;"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT COALESCE(title || ' ', '') || first_name || ' ' || last_name FROM contacts")
+    rows = cur.fetchall()
+    return rows[0][0] == 'Mr. John Doe' and rows[1][0] == 'Jane Smith'
+
+medium = Task("First row should be 'Mr. John Doe', second 'Jane Smith' (no NULL appearing).",
+              verify_medium, Level.MEDIUM,
+              hints=["Use COALESCE to avoid NULL concatenation."])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT first_name || ' ' || last_name AS full_name, LENGTH(first_name || ' ' || last_name) AS len FROM contacts ORDER BY len DESC")
+    rows = cur.fetchall()
+    return rows[0][1] >= rows[1][1]
+
+hard = Task("Create a full_name column and sort by its length descending.",
+            verify_hard, Level.HARD,
+            hints=["SELECT first_name || ' ' || last_name AS full_name, LENGTH(first_name || ' ' || last_name) AS len FROM contacts ORDER BY len DESC;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

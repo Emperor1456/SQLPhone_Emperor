@@ -1,55 +1,48 @@
-# L-36_Joining_More_Than_Two_Tables.py
-# SQLPhone Emperor – SQL Module 04
-# Practice: Join three or more tables.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE authors(id INTEGER PRIMARY KEY, name TEXT)")
+    cur.execute("CREATE TABLE books(id INTEGER PRIMARY KEY, title TEXT, author_id INTEGER)")
+    cur.execute("CREATE TABLE reviews(id INTEGER PRIMARY KEY, book_id INTEGER, reviewer_name TEXT)")
+    cur.executemany("INSERT INTO authors VALUES (?,?)", [(1,'Author A'),(2,'Author B')])
+    cur.executemany("INSERT INTO books VALUES (?,?,?)", [(1,'Book X',1),(2,'Book Y',2)])
+    cur.executemany("INSERT INTO reviews VALUES (?,?,?)", [(1,1,'Alice'),(2,1,'Bob'),(3,2,'Charlie')])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create tables 'authors' (id, name), 'books' (id, title, author_id), 'reviews' (id, book_id, reviewer_name).")
-    print("Insert data. Write a query that returns book title, author name, and reviewer name for all reviews.")
-    print("(Requires joining authors->books->reviews).")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT COUNT(*) FROM reviews")
-        review_count = cur.fetchone()[0]
-        cur.execute("""
-            SELECT b.title, a.name, r.reviewer_name
-            FROM reviews r
-            JOIN books b ON r.book_id = b.id
-            JOIN authors a ON b.author_id = a.id
-        """)
-        rows = cur.fetchall()
-        if len(rows) == review_count:
-            print(f"✅ Three‑table join returned all {review_count} reviews.")
-            conn.close()
-            return True
-        else:
-            print(f"❌ Expected {review_count} rows, got {len(rows)}. Check joins.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have authors, books, reviews. Write a query that returns book title, author name, and reviewer name for all reviews (joining 3 tables).",
+            verify_easy, Level.EASY,
+            hints=["SELECT b.title, a.name, r.reviewer_name FROM reviews r JOIN books b ON r.book_id = b.id JOIN authors a ON b.author_id = a.id;"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT b.title, a.name, r.reviewer_name FROM reviews r JOIN books b ON r.book_id = b.id JOIN authors a ON b.author_id = a.id")
+    rows = cur.fetchall()
+    return len(rows) == 3
+
+medium = Task("Your join should return exactly 3 rows (one per review).",
+              verify_medium, Level.MEDIUM,
+              hints=["Check the join order: reviews -> books -> authors."])
+
+def verify_hard(cur, conn):
+    cur.execute("""
+        SELECT a.name, COUNT(r.id) as review_count
+        FROM authors a
+        JOIN books b ON a.id = b.author_id
+        JOIN reviews r ON b.id = r.book_id
+        GROUP BY a.name
+        ORDER BY review_count DESC
+    """)
+    rows = cur.fetchall()
+    return len(rows) >= 1 and rows[0][1] >= 2
+
+hard = Task("Show the number of reviews each author has received, sorted by most reviews first.",
+            verify_hard, Level.HARD,
+            hints=["SELECT a.name, COUNT(r.id) FROM authors a JOIN books b ON a.id = b.author_id JOIN reviews r ON b.id = r.book_id GROUP BY a.name ORDER BY COUNT(r.id) DESC;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

@@ -1,56 +1,32 @@
-# L-04_Data_Types_in_SQLite.py
-# SQLPhone Emperor – SQL Module 01
-# Practice: Use correct storage classes and type affinity.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("PRAGMA table_info('products')")
+    return len(cur.fetchall()) == 5
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create a table 'products' with columns:")
-    print("  id (INTEGER PRIMARY KEY), name (TEXT NOT NULL), price (REAL), quantity (INTEGER), photo (BLOB).")
-    print("Insert one row with realistic values (photo can be X'0000').")
-    print("Then SELECT to verify type affinity works.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    # Verify structure
-    try:
-        cur.execute("PRAGMA table_info('products')")
-        cols = cur.fetchall()
-        if len(cols) != 5:
-            print("❌ Table should have 5 columns.")
-            conn.close()
-            return False
-        # Check inserted data
-        cur.execute("SELECT * FROM products")
-        row = cur.fetchone()
-        if not row:
-            print("❌ No data inserted.")
-            conn.close()
-            return False
-        print(f"✅ Products table created with {len(cols)} columns. Data: {row}")
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("Create table 'products' (id INT PK, name TEXT NOT NULL, price REAL, quantity INT, photo BLOB).", verify_easy, Level.EASY,
+            hints=["CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, price REAL, quantity INTEGER, photo BLOB);"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT * FROM products")
+    row = cur.fetchone()
+    return row is not None and len(row) == 5
+
+medium = Task("Insert one row into products (use X'0000' for blob).", verify_medium, Level.MEDIUM,
+              hints=["INSERT INTO products VALUES (1, 'Widget', 9.99, 100, X'0000');","SELECT * FROM products;"])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM products")
+    return cur.fetchone()[0] >= 2
+
+hard = Task("Insert a second product with a different name and price, then SELECT all products sorted by price descending.", verify_hard, Level.HARD,
+            hints=["INSERT INTO products VALUES (2, 'Gadget', 19.99, 50, X'1111');","SELECT * FROM products ORDER BY price DESC;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

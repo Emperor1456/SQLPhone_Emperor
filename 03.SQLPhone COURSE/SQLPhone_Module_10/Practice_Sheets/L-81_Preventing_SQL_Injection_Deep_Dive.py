@@ -1,59 +1,65 @@
-# L-81_Preventing_SQL_Injection_Deep_Dive.py
-# SQLPhone Emperor – SQL Module 10
-# Practice: Exploit a vulnerable query and fix it.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, password TEXT)")
+    cur.execute("INSERT INTO users (username, password) VALUES ('admin', 'secret')")
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: We have a table 'users' with a row 'admin'.")
-    print("A vulnerable SELECT uses string formatting. Try to inject SQL to return the admin row without knowing the name.")
-    print("Then rewrite the query using parameterized substitution to prevent injection.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, password TEXT)")
-    conn.execute("INSERT INTO users (username, password) VALUES ('admin', 'secret')")
-    conn.commit()
-    # Part 1: Show vulnerable example
-    print("Vulnerable query: SELECT * FROM users WHERE username = '{}'".format(input("Enter username: ")))
-    user_input = input("Try injection (e.g., ' OR 1=1 --): ")
+easy = Task(
+    "We have a 'users' table with an admin row. Simulate a dangerous string‑built query: SELECT * FROM users WHERE username = 'input'. Try injecting to return the admin row without knowing the username.",
+    verify_easy, Level.EASY,
+    hints=["Try input: ' OR 1=1 --"]
+)
+
+def verify_medium(cur, conn):
+    # The user should demonstrate the attack, then fix it with parameterized query.
+    # We'll just check that they now write a safe query using ?.
+    safe_input = input("Now write the safe parameterized query to find admin (use ? and pass 'admin' as parameter):\n> ")
+    # We'll execute it with parameter
     try:
-        # Simulate vulnerable execution (do not really use format in production)
-        cur = conn.execute("SELECT * FROM users WHERE username = '{}'".format(user_input))
-        rows = cur.fetchall()
-        if len(rows) > 1 or (len(rows) == 1 and rows[0][1] == 'admin'):
-            print(f"⚠️ Injection likely succeeded! Returned rows: {rows}")
-        else:
-            print("No extra rows returned.")
-    except Exception as e:
-        print(f"Error: {e}")
-    # Part 2: Fix
-    print("\nNow write a safe parameterized query using ?:")
-    safe_sql = input("Enter your safe query (should use ? placeholder): ")
-    # We'll execute with a safe parameter 'admin' to see if it works.
-    try:
-        cur = conn.execute(safe_sql, ('admin',))
+        cur.execute(safe_input, ('admin',))
         row = cur.fetchone()
         if row and row[1] == 'admin':
-            print("✅ Safe query works correctly.")
-            conn.close()
+            print("✅ Safe query works!")
             return True
         else:
             print("❌ Safe query did not return admin.")
-            conn.close()
             return False
     except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
+        print(f"❌ {e}")
         return False
 
-def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
+medium = Task(
+    "Fix the vulnerability by rewriting the query with a parameterized placeholder (?).",
+    verify_medium, Level.MEDIUM,
+    hints=["cur.execute('SELECT * FROM users WHERE username = ?', ('admin',))"]
+)
 
-if __name__ == "__main__":
-    main()
+def verify_hard(cur, conn):
+    # Use both validation and parameterization
+    try:
+        cur.execute("SELECT * FROM users WHERE username = ? AND password = ?", ("admin", "' OR 1=1 --"))
+        if cur.fetchone():
+            print("❌ Injection still worked (should not match).")
+            return False
+        else:
+            print("✅ Injection prevented.")
+            return True
+    except Exception as e:
+        print(f"❌ {e}")
+        return False
+
+hard = Task(
+    "Show that even with malicious input as password, the query is safe and doesn't return the admin row.",
+    verify_hard, Level.HARD,
+    hints=["pass malicious string as parameter, it will be escaped"]
+)
+
+def main():
+    print("1 Easy  2 Medium  3 Hard")
+    c = input("> ")
+    tasks = {"1": easy, "2": medium, "3": hard}
+    run_task(tasks.get(c, easy))
+if __name__ == "__main__": main()

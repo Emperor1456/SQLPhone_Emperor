@@ -1,68 +1,38 @@
-# L-43_ANY_and_ALL.py
-# SQLPhone Emperor – SQL Module 05
-# Practice: ANY and ALL comparisons.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE scores(player TEXT, points INTEGER)")
+    cur.executemany("INSERT INTO scores VALUES (?,?)", [('Alice',50),('Alice',80),('Bob',60),('Charlie',90)])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'scores' (player TEXT, points INTEGER).")
-    print("Insert at least 4 rows.")
-    print("Write a query to find players with points greater than ANY score from a specific player, e.g., 'Alice'.")
-    print("Also write a query to find players with points greater than ALL scores of 'Alice'.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        # Ensure 'Alice' exists
-        cur.execute("SELECT COUNT(*) FROM scores WHERE player='Alice'")
-        if cur.fetchone()[0] == 0:
-            print("❌ Insert a player named 'Alice' with at least one score.")
-            conn.close()
-            return False
-        # Test > ANY
-        cur.execute("""
-            SELECT player, points FROM scores
-            WHERE points > ANY (SELECT points FROM scores WHERE player='Alice')
-            AND player != 'Alice'
-        """)
-        any_rows = cur.fetchall()
-        # Test > ALL
-        cur.execute("""
-            SELECT player, points FROM scores
-            WHERE points > ALL (SELECT points FROM scores WHERE player='Alice')
-            AND player != 'Alice'
-        """)
-        all_rows = cur.fetchall()
-        if any_rows or all_rows:
-            print(f"✅ > ANY found: {any_rows}")
-            print(f"✅ > ALL found: {all_rows}")
-            conn.close()
-            return True
-        else:
-            print("❌ No rows returned. Ensure Alice has some scores and other players have higher/lower points.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have 'scores'. Write a query to find players with points greater than ANY score of 'Alice'.",
+            verify_easy, Level.EASY,
+            hints=["SELECT player, points FROM scores WHERE points > ANY (SELECT points FROM scores WHERE player='Alice') AND player != 'Alice';"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT player, points FROM scores WHERE points > ANY (SELECT points FROM scores WHERE player='Alice') AND player != 'Alice'")
+    rows = cur.fetchall()
+    # Bob(60) and Charlie(90) both >50 (Alice's min)
+    return len(rows) == 2
+
+medium = Task("Your query should return Bob and Charlie (both > 50).",
+              verify_medium, Level.MEDIUM,
+              hints=["The subquery returns (50,80). ANY means >50 OR >80 -> >50."])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT player, points FROM scores WHERE points > ALL (SELECT points FROM scores WHERE player='Alice')")
+    rows = cur.fetchall()
+    return len(rows) == 1 and rows[0][0] == 'Charlie'
+
+hard = Task("Find players with points greater than ALL of Alice's scores (should be only Charlie, 90 > 80).",
+            verify_hard, Level.HARD,
+            hints=["SELECT player, points FROM scores WHERE points > ALL (SELECT points FROM scores WHERE player='Alice');"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

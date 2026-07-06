@@ -1,45 +1,44 @@
-# L-72_Creating_Tables_via_Python.py
-# SQLPhone Emperor – SQL Module 09
-# Practice: Execute CREATE TABLE via Python.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='products'")
+    return cur.fetchone() is not None
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Write Python code to create a table 'products' with id, name, price. Include IF NOT EXISTS.")
-    print("We will execute your code, then check the schema.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    user_code = input(">>> ")
-    try:
-        exec(user_code, {"conn": conn})
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    cur = conn.cursor()
-    try:
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='products'")
-        if cur.fetchone():
-            print("✅ Table 'products' exists.")
-            conn.close()
-            return True
-        else:
-            print("❌ Table not found.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ {e}")
-        conn.close()
-        return False
+easy = Task(
+    "Write Python code to execute a CREATE TABLE for 'products' (id, name, price).",
+    verify_easy, Level.EASY,
+    hints=["cur.execute('CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, price REAL)')", "conn.commit()"]
+)
+
+def verify_medium(cur, conn):
+    cur.execute("PRAGMA table_info('products')")
+    cols = [c[1] for c in cur.fetchall()]
+    return cols == ['id','name','price']
+
+medium = Task(
+    "Verify the column names are exactly 'id', 'name', 'price'.",
+    verify_medium, Level.MEDIUM,
+    hints=["PRAGMA table_info('products')"]
+)
+
+def verify_hard(cur, conn):
+    cur.execute("INSERT INTO products (name, price) VALUES ('Test', 9.99)")
+    conn.commit()
+    cur.execute("SELECT name, price FROM products WHERE name='Test'")
+    row = cur.fetchone()
+    return row == ('Test', 9.99)
+
+hard = Task(
+    "Insert a product using Python and then fetch it back to confirm.",
+    verify_hard, Level.HARD,
+    hints=["cur.execute('INSERT INTO products (name, price) VALUES (?,?)', ('Test', 9.99))", "conn.commit()"]
+)
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c = input("> ")
+    tasks = {"1": easy, "2": medium, "3": hard}
+    run_task(tasks.get(c, easy))
+if __name__ == "__main__": main()

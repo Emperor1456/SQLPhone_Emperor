@@ -1,56 +1,39 @@
-# L-41_IN_and_NOT_IN_Subqueries.py
-# SQLPhone Emperor – SQL Module 05
-# Practice: IN and NOT IN with subquery.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE customers(id INTEGER PRIMARY KEY, name TEXT)")
+    cur.execute("CREATE TABLE orders(id INTEGER, cust_id INTEGER)")
+    cur.executemany("INSERT INTO customers VALUES (?,?)", [(1,'Alice'),(2,'Bob'),(3,'Charlie')])
+    cur.executemany("INSERT INTO orders VALUES (?,?)", [(1,1),(2,1),(3,2)])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create tables 'customers' (id, name) and 'orders' (id, cust_id).")
-    print("Insert customers with and without orders.")
-    print("Write a query using NOT IN to find customers who have never placed an order.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT COUNT(*) FROM customers")
-        if cur.fetchone()[0] < 3:
-            print("❌ Need at least 3 customers.")
-            conn.close()
-            return False
-        cur.execute("""
-            SELECT name FROM customers
-            WHERE id NOT IN (SELECT cust_id FROM orders)
-        """)
-        rows = cur.fetchall()
-        if rows:
-            print(f"✅ Customers without orders: {[r[0] for r in rows]}")
-            conn.close()
-            return True
-        else:
-            print("❌ All customers have orders. Insert at least one customer with no orders.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have customers and orders. Write a query using NOT IN to find customers who have never placed an order.",
+            verify_easy, Level.EASY,
+            hints=["SELECT name FROM customers WHERE id NOT IN (SELECT cust_id FROM orders);"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT name FROM customers WHERE id NOT IN (SELECT cust_id FROM orders)")
+    rows = cur.fetchall()
+    return len(rows) == 1 and rows[0][0] == 'Charlie'
+
+medium = Task("The query should return only 'Charlie'.",
+              verify_medium, Level.MEDIUM,
+              hints=["Check that the subquery returns the correct list of cust_ids."])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT name FROM customers WHERE id IN (SELECT cust_id FROM orders WHERE cust_id IS NOT NULL)")
+    rows = cur.fetchall()
+    return {'Alice','Bob'} == {r[0] for r in rows}
+
+hard = Task("Find customers who HAVE placed an order using IN.",
+            verify_hard, Level.HARD,
+            hints=["SELECT name FROM customers WHERE id IN (SELECT cust_id FROM orders);"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

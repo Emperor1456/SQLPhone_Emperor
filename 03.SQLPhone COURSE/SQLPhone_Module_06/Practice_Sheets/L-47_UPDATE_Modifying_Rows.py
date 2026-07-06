@@ -1,58 +1,37 @@
-# L-47_UPDATE_Modifying_Rows.py
-# SQLPhone Emperor – SQL Module 06
-# Practice: UPDATE rows safely.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE inventory(id INTEGER PRIMARY KEY, item TEXT, quantity INTEGER)")
+    cur.executemany("INSERT INTO inventory VALUES (?,?,?)", [(1,'widget',10),(2,'gadget',5),(3,'doohickey',20)])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'inventory' (id, item, quantity).")
-    print("Insert at least 3 rows. Then update the quantity of one item (by name) to a new value.")
-    print("Make sure your UPDATE uses a WHERE clause. Then SELECT to verify.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL (DDL + INSERT + UPDATE + SELECT):\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        # Check that at least one row quantity changed from original
-        # We'll assume user updated item 'widget' to 50, but we can't enforce that name.
-        # Instead, we'll just verify that the UPDATE didn't change all rows to the same value unintentionally.
-        cur.execute("SELECT COUNT(*) FROM inventory")
-        count = cur.fetchone()[0]
-        if count < 3:
-            print("❌ Need at least 3 rows.")
-            conn.close()
-            return False
-        # Check that not all quantities are equal (if user didn't filter, all would be same)
-        cur.execute("SELECT COUNT(DISTINCT quantity) FROM inventory")
-        distinct = cur.fetchone()[0]
-        if distinct > 1:
-            print(f"✅ UPDATE successful. {distinct} different quantities exist (targeted update worked).")
-            conn.close()
-            return True
-        else:
-            print("❌ All quantities are the same. Did you forget the WHERE clause?")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have 'inventory'. Update the quantity of 'widget' to 15. Then SELECT to verify.",
+            verify_easy, Level.EASY,
+            hints=["UPDATE inventory SET quantity = 15 WHERE item = 'widget'; SELECT * FROM inventory;"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT quantity FROM inventory WHERE item='widget'")
+    row = cur.fetchone()
+    return row and row[0] == 15 and len(cur.execute("SELECT * FROM inventory").fetchall()) == 3
+
+medium = Task("Ensure only widget's quantity changed, others unchanged.",
+              verify_medium, Level.MEDIUM,
+              hints=["Add a WHERE clause to target the row."])
+
+def verify_hard(cur, conn):
+    cur.execute("UPDATE inventory SET quantity = quantity + 1 WHERE quantity < 20")
+    cur.execute("SELECT COUNT(*) FROM inventory WHERE quantity IN (6, 16)")
+    return cur.fetchone()[0] == 2
+
+hard = Task("Increase quantity by 1 for all items that currently have quantity < 20.",
+            verify_hard, Level.HARD,
+            hints=["UPDATE inventory SET quantity = quantity + 1 WHERE quantity < 20;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

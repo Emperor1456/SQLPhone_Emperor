@@ -1,48 +1,35 @@
-# L-16_BETWEEN.py
-# SQLPhone Emperor – SQL Module 02
-# Practice: Filter with BETWEEN.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM events")
+    return cur.fetchone()[0] >= 4
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'events' (id, name, event_date TEXT in 'YYYY-MM-DD').")
-    print("Insert at least 4 rows with dates covering a range.")
-    print("Write a query that selects events between '2026-06-01' and '2026-06-30' inclusive.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT COUNT(*) FROM events WHERE event_date BETWEEN '2026-06-01' AND '2026-06-30'")
-        count = cur.fetchone()[0]
-        if count > 0:
-            print(f"✅ Query returned {count} June events.")
-            conn.close()
-            return True
-        else:
-            print("❌ No events found for June 2026. Ensure data includes those dates.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("Create table 'events' (id, name, event_date TEXT in YYYY-MM-DD). Insert at least 4 rows covering dates across a range.",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE events (id INTEGER PRIMARY KEY, name TEXT, event_date TEXT);",
+                   "INSERT INTO events (name, event_date) VALUES ('E1','2026-06-01'),('E2','2026-06-15'),('E3','2026-07-01'),('E4','2026-05-30');"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM events WHERE event_date BETWEEN '2026-06-01' AND '2026-06-30'")
+    return cur.fetchone()[0] > 0
+
+medium = Task("Select events happening in June 2026 using BETWEEN.",
+              verify_medium, Level.MEDIUM,
+              hints=["SELECT * FROM events WHERE event_date BETWEEN '2026-06-01' AND '2026-06-30';"])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM events WHERE event_date NOT BETWEEN '2026-06-01' AND '2026-06-30'")
+    return cur.fetchone()[0] > 0
+
+hard = Task("Select events that are NOT in June 2026 using NOT BETWEEN.",
+            verify_hard, Level.HARD,
+            hints=["SELECT * FROM events WHERE event_date NOT BETWEEN '2026-06-01' AND '2026-06-30';"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

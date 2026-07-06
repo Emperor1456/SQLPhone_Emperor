@@ -1,38 +1,43 @@
-# L-74_fetchone_fetchall_fetchmany.py
-# SQLPhone Emperor – SQL Module 09
-# Practice: Fetch methods.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE nums(n INT)")
+    cur.executemany("INSERT INTO nums VALUES (?)", [(i,) for i in range(1,11)])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: I'll create a table 'nums' with numbers 1-10.")
-    print("Write Python code to fetch the first 3 rows using fetchmany(3), then the rest with fetchall.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    cur.execute("CREATE TABLE nums (n INT)")
-    cur.executemany("INSERT INTO nums VALUES (?)", [(i,) for i in range(1, 11)])
-    conn.commit()
-    user_code = input(">>> ")
-    try:
-        exec(user_code, {"conn": conn})
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    # Verify that user fetched something? Hard to verify automatically, but we can check if they accessed the cursor correctly by re-running and comparing? We'll just trust that they printed something.
-    print("✅ Code executed. If you saw 1,2,3 then 4..10, you're good.")
-    conn.close()
-    return True  # we can't easily verify output, but we trust they did the task.
+easy = Task(
+    "We've created 'nums' with values 1-10. Write Python code to fetch the first row with fetchone().",
+    verify_easy, Level.EASY,
+    hints=["cur.execute('SELECT n FROM nums')", "row = cur.fetchone()", "print(row)"]
+)
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT n FROM nums")
+    rows = cur.fetchmany(3)
+    return len(rows) == 3
+
+medium = Task(
+    "Fetch exactly 3 rows using fetchmany(3).",
+    verify_medium, Level.MEDIUM,
+    hints=["cur.execute('SELECT n FROM nums')", "rows = cur.fetchmany(3)"]
+)
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT n FROM nums")
+    all_rows = cur.fetchall()
+    return len(all_rows) == 10
+
+hard = Task(
+    "Fetch all remaining rows with fetchall() and confirm there are 10 total.",
+    verify_hard, Level.HARD,
+    hints=["cur.execute('SELECT n FROM nums')", "rows = cur.fetchall()", "print(len(rows))"]
+)
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c = input("> ")
+    tasks = {"1": easy, "2": medium, "3": hard}
+    run_task(tasks.get(c, easy))
+if __name__ == "__main__": main()

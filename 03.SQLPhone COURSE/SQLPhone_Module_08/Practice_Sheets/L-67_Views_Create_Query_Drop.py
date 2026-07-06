@@ -1,49 +1,36 @@
-# L-67_Views_Create_Query_Drop.py
-# SQLPhone Emperor – SQL Module 08
-# Practice: Create and query a view.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE employees(id INTEGER PRIMARY KEY, name TEXT, dept TEXT, salary REAL)")
+    cur.executemany("INSERT INTO employees VALUES (?,?,?,?)", [(1,'Alice','Sales',50000),(2,'Bob','HR',60000),(3,'Charlie','Sales',70000)])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'employees' (id, name, dept, salary).")
-    print("Insert rows. Then create a view 'sales_staff' for employees in dept='Sales'.")
-    print("Query the view to show that it works. Drop the view at the end.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        # Check that view was created and then dropped (if drop included)
-        cur.execute("SELECT name FROM sqlite_master WHERE type='view' AND name='sales_staff'")
-        view_exists = cur.fetchone()
-        if view_exists:
-            print("✅ View 'sales_staff' created and can be queried.")
-            conn.close()
-            return True
-        else:
-            print("❌ View not found. Ensure CREATE VIEW statement is correct.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have 'employees'. Create a view 'sales_staff' that shows only employees in department 'Sales'.",
+            verify_easy, Level.EASY,
+            hints=["CREATE VIEW sales_staff AS SELECT * FROM employees WHERE dept = 'Sales';"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM sales_staff")
+    return cur.fetchone()[0] == 2
+
+medium = Task("Query the view; it should return 2 rows (Alice and Charlie).",
+              verify_medium, Level.MEDIUM,
+              hints=["SELECT * FROM sales_staff;"])
+
+def verify_hard(cur, conn):
+    cur.execute("DROP VIEW IF EXISTS sales_staff")
+    cur.execute("SELECT name FROM sqlite_master WHERE type='view' AND name='sales_staff'")
+    return cur.fetchone() is None
+
+hard = Task("Drop the view and confirm it no longer exists.",
+            verify_hard, Level.HARD,
+            hints=["DROP VIEW sales_staff; SELECT name FROM sqlite_master WHERE type='view' AND name='sales_staff';"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

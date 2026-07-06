@@ -1,57 +1,42 @@
-# L-51_Constraints_Deep_Dive.py
-# SQLPhone Emperor – SQL Module 06
-# Practice: Apply multiple constraints.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE users(id INTEGER PRIMARY KEY, username TEXT NOT NULL UNIQUE, age INTEGER CHECK(age>=18), email TEXT UNIQUE)")
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'users' with columns: id INTEGER PRIMARY KEY, username TEXT NOT NULL UNIQUE, age INTEGER CHECK(age>=18), email TEXT UNIQUE.")
-    print("Insert a valid row, then try inserting a duplicate username (should fail). Catch the error.")
-    print("We'll verify the schema and the failed insert behavior.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL (include a failed insert test):\n> ")
+easy = Task("Create a table 'users' with NOT NULL, UNIQUE, CHECK constraints.",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE users(id INTEGER PRIMARY KEY, username TEXT NOT NULL UNIQUE, age INTEGER CHECK(age>=18), email TEXT UNIQUE);"])
+
+def verify_medium(cur, conn):
     try:
-        cur.executescript(user_sql)
+        cur.execute("INSERT INTO users (username, age, email) VALUES ('admin', 30, 'admin@test.com')")
         conn.commit()
-    except Exception as e:
-        print(f"❌ Error (expected if duplicate): {e}")
-        # Expected that a duplicate throws an error, but it's okay if user didn't handle it gracefully.
-        conn.close()
-        return False
+        cur.execute("INSERT INTO users (username, age, email) VALUES ('admin', 25, 'admin2@test.com')")
+        return False  # should fail
+    except sqlite3.IntegrityError:
+        return True
+
+medium = Task("Insert a valid row, then try inserting a duplicate username (should be rejected).",
+              verify_medium, Level.MEDIUM,
+              hints=["First INSERT: ('admin', 30, 'admin@test.com'); second with same username."])
+
+def verify_hard(cur, conn):
     try:
-        # Verify constraints exist via PRAGMA (indirectly)
-        cur.execute("PRAGMA table_info('users')")
-        cols = cur.fetchall()
-        if len(cols) < 4:
-            print("❌ Table must have 4 columns.")
-            conn.close()
-            return False
-        # Try a duplicate insert now to ensure constraint is active
-        try:
-            cur.execute("INSERT INTO users (username, age, email) VALUES ('admin', 30, 'admin@test.com')")
-            cur.execute("INSERT INTO users (username, age, email) VALUES ('admin', 25, 'admin2@test.com')")
-            print("❌ Duplicate username didn't throw an error. Constraint not enforced.")
-            conn.close()
-            return False
-        except sqlite3.IntegrityError:
-            print("✅ Duplicate correctly rejected.")
-            conn.close()
-            return True
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
+        cur.execute("INSERT INTO users (username, age, email) VALUES ('test', 15, 'test@test.com')")
         return False
+    except sqlite3.IntegrityError:
+        return True
+
+hard = Task("Try inserting an age < 18 (should be rejected by CHECK).",
+            verify_hard, Level.HARD,
+            hints=["INSERT INTO users (username, age, email) VALUES ('test', 15, 'test@test.com');"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

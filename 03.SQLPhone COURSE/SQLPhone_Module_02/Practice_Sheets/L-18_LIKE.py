@@ -1,48 +1,35 @@
-# L-18_LIKE.py
-# SQLPhone Emperor – SQL Module 02
-# Practice: Pattern matching with LIKE.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM users")
+    return cur.fetchone()[0] >= 4
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'users' (id, username, email).")
-    print("Insert at least 4 rows, some with emails ending in '@example.com', some not.")
-    print("Write a query that selects users whose email LIKE '%@example.com'.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT COUNT(*) FROM users WHERE email LIKE '%@example.com'")
-        count = cur.fetchone()[0]
-        if count > 0:
-            print(f"✅ Query found {count} users with example.com emails.")
-            conn.close()
-            return True
-        else:
-            print("❌ No users with '@example.com' email. Ensure you inserted such rows.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("Create table 'users' (id, username, email). Insert at least 4 rows, some with emails ending '@example.com'.",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, email TEXT);",
+                   "INSERT INTO users (username, email) VALUES ('u1','u1@example.com'),('u2','u2@gmail.com'),('u3','u3@example.com'),('u4','u4@yahoo.com');"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM users WHERE email LIKE '%@example.com'")
+    return cur.fetchone()[0] > 0
+
+medium = Task("Select users whose email LIKE '%@example.com'.",
+              verify_medium, Level.MEDIUM,
+              hints=["SELECT * FROM users WHERE email LIKE '%@example.com';"])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM users WHERE username LIKE '_u%'")
+    return cur.fetchone()[0] > 0
+
+hard = Task("Select users whose username has 'u' as the second character (pattern: '_u%').",
+            verify_hard, Level.HARD,
+            hints=["SELECT * FROM users WHERE username LIKE '_u%';"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

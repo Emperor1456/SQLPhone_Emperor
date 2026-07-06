@@ -1,70 +1,65 @@
-# L-85_Backup_and_Restore.py
-# SQLPhone Emperor – SQL Module 10
-# Practice: Perform a backup using .backup or .dump.
+import sys, sqlite3, os
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3, os, subprocess
-
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create a database 'source.db' with a table and row.")
-    print("Then write Python code or CLI commands to back it up to 'backup.db'.")
-    print("We'll check that 'backup.db' contains the same data.")
-    print("=" * 50)
-    # Create source db
+def verify_easy(cur, conn):
+    # create source.db separately
     src = sqlite3.connect("source.db")
-    src.execute("CREATE TABLE data (info TEXT)")
+    src.execute("CREATE TABLE data(info TEXT)")
     src.execute("INSERT INTO data VALUES ('Emperor')")
     src.commit()
     src.close()
-    user_code = input("Enter your Python backup code (or CLI command preceded by '!'):\n> ")
-    if user_code.startswith('!'):
-        # Shell command
-        cmd = user_code[1:].strip()
-        os.system(cmd)
-    else:
-        try:
-            exec(user_code)
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            os.unlink("source.db")
-            return False
-    # Verify
+    return True
+
+easy = Task(
+    "I've created 'source.db' with a table and row. Write Python code to back it up to 'backup.db' using the .backup() method (or .dump).",
+    verify_easy, Level.EASY,
+    hints=["import sqlite3; src = sqlite3.connect('source.db'); dst = sqlite3.connect('backup.db'); src.backup(dst); dst.close(); src.close()"]
+)
+
+def verify_medium(cur, conn):
+    # Check backup.db exists and contains the row
     if os.path.exists("backup.db"):
         dst = sqlite3.connect("backup.db")
-        cur = dst.cursor()
-        try:
-            cur.execute("SELECT info FROM data")
-            row = cur.fetchone()
-            if row and row[0] == 'Emperor':
-                print("✅ Backup verified.")
-                dst.close()
-                os.unlink("source.db")
-                os.unlink("backup.db")
-                return True
-            else:
-                print("❌ Data not found in backup.")
-                dst.close()
-                os.unlink("source.db")
-                os.unlink("backup.db")
-                return False
-        except Exception as e:
-            print(f"❌ Backup file exists but table missing: {e}")
-            dst.close()
-            os.unlink("source.db")
-            if os.path.exists("backup.db"): os.unlink("backup.db")
-            return False
-    else:
-        print("❌ backup.db not created.")
-        os.unlink("source.db")
-        return False
+        cur2 = dst.cursor()
+        cur2.execute("SELECT info FROM data")
+        row = cur2.fetchone()
+        dst.close()
+        return row == ('Emperor',)
+    return False
+
+medium = Task(
+    "Verify that 'backup.db' contains the same row ('Emperor').",
+    verify_medium, Level.MEDIUM,
+    hints=["Open backup.db and SELECT * FROM data."]
+)
+
+def verify_hard(cur, conn):
+    # Restore from backup into a new database
+    if os.path.exists("backup.db"):
+        dst = sqlite3.connect("backup.db")
+        new = sqlite3.connect("restored.db")
+        dst.backup(new)
+        new.close()
+        dst.close()
+        # check restored.db
+        conn2 = sqlite3.connect("restored.db")
+        cur2 = conn2.cursor()
+        cur2.execute("SELECT info FROM data")
+        row = cur2.fetchone()
+        conn2.close()
+        return row == ('Emperor',)
+    return False
+
+hard = Task(
+    "Restore the backup into a new database 'restored.db' and confirm the data.",
+    verify_hard, Level.HARD,
+    hints=["Use backup method in reverse: dst.backup(new_conn)."]
+)
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c = input("> ")
+    tasks = {"1": easy, "2": medium, "3": hard}
+    run_task(tasks.get(c, easy))
+if __name__ == "__main__": main()

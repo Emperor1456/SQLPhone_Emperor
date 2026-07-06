@@ -1,52 +1,50 @@
-# L-29_Relationships_and_Foreign_Keys.py
-# SQLPhone Emperor – SQL Module 04
-# Practice: Define relationships and foreign keys.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
-
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create two tables: 'departments' (id, name) and 'employees' (id, name, dept_id).")
-    print("Add a FOREIGN KEY on dept_id referencing departments(id).")
-    print("Insert a department, then insert an employee with that dept_id.")
-    print("Then try to insert an employee with a non‑existent dept_id (should fail if FK is enforced).")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
+def verify_easy(cur, conn):
     cur.execute("PRAGMA foreign_keys = ON")
-    user_sql = input("Enter your SQL (include PRAGMA if needed):\n> ")
     try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
+        cur.execute("CREATE TABLE departments(id INTEGER PRIMARY KEY, name TEXT)")
+        cur.execute("CREATE TABLE employees(id INTEGER PRIMARY KEY, name TEXT, dept_id INTEGER, FOREIGN KEY(dept_id) REFERENCES departments(id))")
+        return True
+    except:
         return False
+
+easy = Task("Create two tables: 'departments' and 'employees' with a foreign key from employees.dept_id to departments.id.",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT);",
+                   "CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, dept_id INTEGER, FOREIGN KEY(dept_id) REFERENCES departments(id));"])
+
+def verify_medium(cur, conn):
+    cur.execute("PRAGMA foreign_keys = ON")
     try:
-        # Verify that the FK violation fails
-        # We'll try an invalid insert ourselves to confirm enforcement
-        try:
-            cur.execute("INSERT INTO employees (name, dept_id) VALUES ('Test', 9999)")
-            conn.commit()
-            print("❌ Foreign key NOT enforced. Make sure PRAGMA foreign_keys = ON and table definition includes FOREIGN KEY.")
-            conn.close()
-            return False
-        except sqlite3.IntegrityError:
-            print("✅ Foreign key enforced correctly. Invalid insert blocked.")
-            conn.close()
-            return True
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
+        cur.execute("INSERT INTO departments VALUES (1, 'Sales')")
+        cur.execute("INSERT INTO employees VALUES (1, 'Alice', 1)")
+        return True
+    except:
         return False
+
+medium = Task("Insert a department and an employee referencing that department.",
+              verify_medium, Level.MEDIUM,
+              hints=["INSERT INTO departments VALUES (1, 'Sales');",
+                     "INSERT INTO employees VALUES (1, 'Alice', 1);"])
+
+def verify_hard(cur, conn):
+    cur.execute("PRAGMA foreign_keys = ON")
+    try:
+        cur.execute("INSERT INTO employees VALUES (2, 'Bob', 999)")
+        return False  # should fail
+    except:
+        return True
+
+hard = Task("Try inserting an employee with a non-existent dept_id (999). It should fail due to foreign key enforcement.",
+            verify_hard, Level.HARD,
+            hints=["INSERT INTO employees VALUES (2, 'Bob', 999); -- will fail"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

@@ -1,54 +1,38 @@
-# L-48_DELETE_Removing_Rows.py
-# SQLPhone Emperor – SQL Module 06
-# Practice: DELETE rows safely.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE logs(id INTEGER PRIMARY KEY, message TEXT, level TEXT)")
+    cur.executemany("INSERT INTO logs VALUES (?,?,?)", [(1,'start','INFO'),(2,'warning','WARN'),(3,'error','ERROR'),(4,'debug','DEBUG')])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'logs' (id, message, level).")
-    print("Insert rows with level 'INFO', 'ERROR', etc.")
-    print("Write a DELETE that removes all rows with level = 'DEBUG'.")
-    print("Then SELECT to confirm they are gone, but others remain.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT COUNT(*) FROM logs")
-        total = cur.fetchone()[0]
-        cur.execute("SELECT COUNT(*) FROM logs WHERE level='DEBUG'")
-        debug_count = cur.fetchone()[0]
-        if debug_count > 0:
-            print(f"❌ DEBUG rows still exist ({debug_count}). DELETE must have failed or used wrong condition.")
-            conn.close()
-            return False
-        if total == 0:
-            print("❌ All rows deleted. Ensure you kept non‑DEBUG rows.")
-            conn.close()
-            return False
-        print(f"✅ DEBUG rows removed. {total} rows remain (non‑DEBUG).")
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have 'logs'. Delete all rows with level = 'DEBUG'. Then SELECT to confirm they're gone.",
+            verify_easy, Level.EASY,
+            hints=["DELETE FROM logs WHERE level = 'DEBUG'; SELECT * FROM logs;"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM logs WHERE level='DEBUG'")
+    if cur.fetchone()[0] > 0: return False
+    cur.execute("SELECT COUNT(*) FROM logs")
+    return cur.fetchone()[0] == 3
+
+medium = Task("Only 3 rows should remain, none with DEBUG level.",
+              verify_medium, Level.MEDIUM,
+              hints=["Check your WHERE clause."])
+
+def verify_hard(cur, conn):
+    cur.execute("DELETE FROM logs WHERE level IN ('WARN','ERROR')")
+    cur.execute("SELECT COUNT(*) FROM logs")
+    return cur.fetchone()[0] == 1
+
+hard = Task("Now delete all logs with level 'WARN' or 'ERROR'. Only INFO should remain.",
+            verify_hard, Level.HARD,
+            hints=["DELETE FROM logs WHERE level IN ('WARN','ERROR');"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

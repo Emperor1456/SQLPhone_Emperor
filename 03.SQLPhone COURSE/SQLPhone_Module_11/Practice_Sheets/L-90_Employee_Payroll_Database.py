@@ -1,51 +1,53 @@
-# L-90_Employee_Payroll_Database.py
-# SQLPhone Emperor – SQL Module 11
-# Practice: Employee payroll.
-
-import sqlite3, os
+import sys, sqlite3, os
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
 DB = "payroll.db"
 
-def task():
-    print("=" * 50)
-    print("🧱 PROJECT 4: Employee Payroll")
-    print("Create Department, Employee, Payroll tables. Add data and queries.")
-    print("We'll verify table existence and data.")
-    print("=" * 50)
-    if os.path.exists(DB):
-        os.remove(DB)
-    user_sql = input("Paste your SQL:\n> ")
-    conn = sqlite3.connect(DB)
-    cur = conn.cursor()
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        for tbl in ['Department','Employee','Payroll']:
-            cur.execute(f"SELECT COUNT(*) FROM {tbl}")
-            if cur.fetchone()[0] == 0:
-                print(f"❌ Table {tbl} empty.")
-                conn.close()
-                return False
-        print("✅ Payroll database ready. Verify your aggregate queries.")
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"❌ {e}")
-        conn.close()
-        return False
+def verify_easy(cur, conn):
+    for tbl in ['Department','Employee','Payroll']:
+        cur.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{tbl}'")
+        if not cur.fetchone():
+            return False
+    return True
+
+easy = Task(
+    "Create Department, Employee, Payroll tables with foreign keys and CHECK (salary > 0).",
+    verify_easy, Level.EASY,
+    hints=["CREATE TABLE Department(id INTEGER PRIMARY KEY, name TEXT, location TEXT);",
+           "CREATE TABLE Employee(id INTEGER PRIMARY KEY, name TEXT, dept_id INTEGER, hire_date TEXT, base_salary REAL CHECK(base_salary>0), FOREIGN KEY(dept_id) REFERENCES Department(id));",
+           "CREATE TABLE Payroll(id INTEGER PRIMARY KEY, employee_id INTEGER, pay_date TEXT, amount REAL, FOREIGN KEY(employee_id) REFERENCES Employee(id));"]
+)
+
+def verify_medium(cur, conn):
+    for tbl in ['Department','Employee','Payroll']:
+        cur.execute(f"SELECT COUNT(*) FROM {tbl}")
+        if cur.fetchone()[0] < 3:
+            return False
+    cur.execute("SELECT d.name, SUM(p.amount) FROM Department d JOIN Employee e ON d.id=e.dept_id JOIN Payroll p ON e.id=p.employee_id GROUP BY d.name")
+    return len(cur.fetchall()) > 0
+
+medium = Task(
+    "Insert 3 departments, 8 employees, multiple payroll entries. Show total payroll cost per department.",
+    verify_medium, Level.MEDIUM,
+    hints=["Use JOIN and GROUP BY."]
+)
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT e.name FROM Employee e JOIN Payroll p ON e.id=p.employee_id GROUP BY e.id HAVING MAX(p.amount) > e.base_salary")
+    rows = cur.fetchall()
+    return len(rows) >= 0
+
+hard = Task(
+    "Find employees who received a bonus (any payroll amount greater than their base_salary).",
+    verify_hard, Level.HARD,
+    hints=["GROUP BY employee, compare MAX(amount) with base_salary."]
+)
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    if os.path.exists(DB): os.remove(DB)
+    print("1 Easy  2 Medium  3 Hard")
+    c = input("> ")
+    tasks = {"1": easy, "2": medium, "3": hard}
+    run_task(tasks.get(c, easy))
+if __name__ == "__main__": main()

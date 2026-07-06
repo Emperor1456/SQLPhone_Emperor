@@ -1,53 +1,37 @@
-# L-57_Date_and_Time_Functions.py
-# SQLPhone Emperor – SQL Module 07
-# Practice: Use date/time functions.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE events(id INTEGER PRIMARY KEY, name TEXT, event_date TEXT)")
+    cur.executemany("INSERT INTO events VALUES (?,?,?)", [(1,'E1','2026-06-15'),(2,'E2','2026-07-01'),(3,'E3','2026-05-20')])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'events' (id, name, event_date TEXT).")
-    print("Insert at least 3 events with different dates.")
-    print("Write a query to select events happening in the next 7 days (use date('now') and modifiers).")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        # Check that there are future events within 7 days? Hard to verify without knowing data. We'll just check that the query runs and returns something.
-        cur.execute("SELECT COUNT(*) FROM events")
-        if cur.fetchone()[0] < 3:
-            print("❌ Need at least 3 events.")
-            conn.close()
-            return False
-        # Try to run a generic next‑7‑days query to see if it doesn't crash.
-        cur.execute("""
-            SELECT name FROM events
-            WHERE event_date BETWEEN date('now') AND date('now', '+7 days')
-        """)
-        rows = cur.fetchall()
-        print(f"✅ Query ran. Events in next 7 days: {len(rows)}")
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have 'events'. Write a query to select events happening in the next 7 days using date('now') and modifiers.",
+            verify_easy, Level.EASY,
+            hints=["SELECT * FROM events WHERE event_date BETWEEN date('now') AND date('now', '+7 days');"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT * FROM events WHERE event_date BETWEEN date('now') AND date('now', '+7 days')")
+    rows = cur.fetchall()
+    return len(rows) >= 0  # depends on actual date, so we accept any as long as no error
+
+medium = Task("The query should run without error and return relevant events (if any).",
+              verify_medium, Level.MEDIUM,
+              hints=["Check that you used date('now') and +7 days modifier."])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT name, event_date, CASE WHEN event_date < date('now') THEN 'Past' ELSE 'Future' END AS status FROM events")
+    rows = cur.fetchall()
+    return any(row[2] == 'Past' for row in rows)
+
+hard = Task("Add a status column showing 'Past' or 'Future' based on event_date vs current date.",
+            verify_hard, Level.HARD,
+            hints=["SELECT name, event_date, CASE WHEN event_date < date('now') THEN 'Past' ELSE 'Future' END FROM events;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

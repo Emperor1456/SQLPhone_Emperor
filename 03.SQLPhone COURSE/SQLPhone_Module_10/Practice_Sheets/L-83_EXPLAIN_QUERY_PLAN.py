@@ -1,42 +1,46 @@
-# L-83_EXPLAIN_QUERY_PLAN.py
-# SQLPhone Emperor – SQL Module 10
-# Practice: Interpret query plans.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
-
-def task():
-    print("=" * 50)
-    print("🧱 TASK: I'll create a table 'items' with an index on 'name'.")
-    print("Run EXPLAIN QUERY PLAN for two queries: one that can use the index, one that cannot.")
-    print("Identify which is which.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    cur.execute("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT, price REAL)")
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE items(id INTEGER PRIMARY KEY, name TEXT, price REAL)")
     cur.execute("CREATE INDEX idx_name ON items(name)")
-    cur.executemany("INSERT INTO items (name, price) VALUES (?, ?)", [('apple', 1.0), ('banana', 2.0), ('cherry', 3.0)])
-    conn.commit()
-    user_sql = input("Enter your SQL with two EXPLAIN QUERY PLAN statements:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    # We can't easily parse output, but we can ask user to indicate which plan uses index.
-    # We'll just trust that they ran it.
-    print("✅ Queries executed. Check the plans above; the one with 'USING INDEX' is the efficient one.")
-    conn.close()
+    cur.executemany("INSERT INTO items(name, price) VALUES (?,?)", [('apple',1.0),('banana',2.0),('cherry',3.0)])
     return True
 
-def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
+easy = Task(
+    "We have 'items' with an index on name. Run EXPLAIN QUERY PLAN for two queries: one that searches on name (should use index) and one that searches on price (should scan).",
+    verify_easy, Level.EASY,
+    hints=["EXPLAIN QUERY PLAN SELECT * FROM items WHERE name = 'apple';", "EXPLAIN QUERY PLAN SELECT * FROM items WHERE price > 1.0;"]
+)
 
-if __name__ == "__main__":
-    main()
+def verify_medium(cur, conn):
+    cur.execute("EXPLAIN QUERY PLAN SELECT * FROM items WHERE name = 'apple'")
+    plan1 = str(cur.fetchall())
+    cur.execute("EXPLAIN QUERY PLAN SELECT * FROM items WHERE price > 1.0")
+    plan2 = str(cur.fetchall())
+    return ('USING INDEX' in plan1) and ('SCAN TABLE' in plan2)
+
+medium = Task(
+    "The first plan should mention USING INDEX, the second SCAN TABLE.",
+    verify_medium, Level.MEDIUM,
+    hints=["Observe the output carefully."]
+)
+
+def verify_hard(cur, conn):
+    cur.execute("EXPLAIN QUERY PLAN SELECT * FROM items ORDER BY name")
+    plan = str(cur.fetchall())
+    return 'USING INDEX' in plan
+
+hard = Task(
+    "Check if ORDER BY name also uses the index (it should).",
+    verify_hard, Level.HARD,
+    hints=["EXPLAIN QUERY PLAN SELECT * FROM items ORDER BY name;"]
+)
+
+def main():
+    print("1 Easy  2 Medium  3 Hard")
+    c = input("> ")
+    tasks = {"1": easy, "2": medium, "3": hard}
+    run_task(tasks.get(c, easy))
+if __name__ == "__main__": main()

@@ -1,49 +1,38 @@
-# L-69_Materialized_Views_Alternatives.py
-# SQLPhone Emperor – SQL Module 08
-# Practice: Simulate a materialized view.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE orders(id INTEGER PRIMARY KEY, product TEXT, amount REAL)")
+    cur.executemany("INSERT INTO orders VALUES (?,?,?)", [(1,'A',100),(2,'A',200),(3,'B',150)])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'orders' (id, product, amount).")
-    print("Insert data. Create a summary table 'order_summary' with product and total_amount.")
-    print("Populate it with a SELECT, then refresh it manually (delete and re‑insert).")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        # Check that order_summary table has data
-        cur.execute("SELECT COUNT(*) FROM order_summary")
-        cnt = cur.fetchone()[0]
-        if cnt > 0:
-            print(f"✅ Summary table created with {cnt} rows.")
-            conn.close()
-            return True
-        else:
-            print("❌ Summary table is empty. Did you insert after creating?")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have 'orders'. Simulate a materialized view by creating a summary table 'order_summary' with product and total_amount, and populate it with a SELECT.",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE order_summary AS SELECT product, SUM(amount) AS total FROM orders GROUP BY product;"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM order_summary")
+    return cur.fetchone()[0] == 2
+
+medium = Task("The summary should have 2 rows (A:300, B:150).",
+              verify_medium, Level.MEDIUM,
+              hints=["Check that you used SUM and GROUP BY."])
+
+def verify_hard(cur, conn):
+    # Refresh the summary manually: delete and re-insert
+    cur.execute("DELETE FROM order_summary")
+    cur.execute("INSERT INTO order_summary SELECT product, SUM(amount) FROM orders GROUP BY product")
+    cur.execute("SELECT total FROM order_summary WHERE product='A'")
+    return cur.fetchone()[0] == 300
+
+hard = Task("Refresh the summary by deleting all rows and re-populating from the base table.",
+            verify_hard, Level.HARD,
+            hints=["DELETE FROM order_summary; INSERT INTO order_summary SELECT product, SUM(amount) FROM orders GROUP BY product;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

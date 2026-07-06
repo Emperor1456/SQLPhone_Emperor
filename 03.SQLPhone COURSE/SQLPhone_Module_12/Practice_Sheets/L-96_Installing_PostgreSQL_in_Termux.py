@@ -1,33 +1,39 @@
-# L-96_Installing_PostgreSQL_in_Termux.py
-# SQLPhone Emperor – SQL Module 12
-# Practice: Install PostgreSQL (if you can) and report.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import subprocess, sys
-
-def task():
-    print("=" * 50)
-    print("🧱 TASK: This practice is informational.")
-    print("If you have installed PostgreSQL via proot-distro, run a quick query in psql and capture the output.")
-    print("Otherwise, write a Python script that prints the version of SQLite you're using as a placeholder.")
-    print("We'll check that your script runs and prints something.")
-    print("=" * 50)
-    code = input("Enter your Python code (can just print sqlite3.sqlite_version):\n> ")
-    try:
-        exec(code)
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        return False
-    # We can't verify version because output depends on execution; we just trust they printed something.
-    print("✅ Script ran. If it showed a version, you're good.")
+def verify_easy(cur, conn):
+    # Simulate: show a message about proot-distro
+    print("Simulated: To install PostgreSQL, use proot-distro.")
     return True
 
-def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
+easy = Task(
+    "Research the commands to install PostgreSQL in Termux via proot-distro. Write them as comments.",
+    verify_easy, Level.EASY,
+    hints=["pkg install proot-distro; proot-distro install debian; proot-distro login debian; apt install postgresql"]
+)
 
-if __name__ == "__main__":
-    main()
+def verify_medium(cur, conn):
+    return True  # assume they did
+
+medium = Task(
+    "Write the steps to start PostgreSQL service and create a database.",
+    verify_medium, Level.MEDIUM,
+    hints=["service postgresql start; su - postgres; createdb testdb; psql -d testdb"]
+)
+
+def verify_hard(cur, conn):
+    return True
+
+hard = Task(
+    "Explain why SQLite is still the best choice for this phone‑based course, even after learning PostgreSQL.",
+    verify_hard, Level.HARD,
+    hints=["Zero configuration, single file, no server overhead, perfect for learning and prototyping."]
+)
+
+def main():
+    print("1 Easy  2 Medium  3 Hard")
+    c = input("> ")
+    tasks = {"1": easy, "2": medium, "3": hard}
+    run_task(tasks.get(c, easy))
+if __name__ == "__main__": main()

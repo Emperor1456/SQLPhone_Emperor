@@ -1,52 +1,43 @@
-# L-56_AUTOINCREMENT_vs_INTEGER_PRIMARY_KEY.py
-# SQLPhone Emperor – SQL Module 06
-# Practice: Compare key behaviors.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE standard(id INTEGER PRIMARY KEY, val TEXT)")
+    cur.execute("CREATE TABLE autoinc(id INTEGER PRIMARY KEY AUTOINCREMENT, val TEXT)")
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create two tables: 'standard' (id INTEGER PRIMARY KEY, val TEXT) and 'autoinc' (id INTEGER PRIMARY KEY AUTOINCREMENT, val TEXT).")
-    print("Insert two rows each, then delete the max id row. Insert another row and compare the new id values.")
-    print("Standard may reuse the deleted id; AUTOINCREMENT will not.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT MAX(id) FROM standard")
-        max_std = cur.fetchone()[0]
-        cur.execute("SELECT MAX(id) FROM autoinc")
-        max_auto = cur.fetchone()[0]
-        if max_std is not None and max_auto is not None:
-            print(f"✅ Standard max id after re‑insert: {max_std}, AUTOINCREMENT max id: {max_auto}")
-            if max_std < max_auto or max_std is not None:
-                print("Behavior difference observed.")
-            conn.close()
-            return True
-        else:
-            print("❌ Data not found.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("Create two tables: one with INTEGER PRIMARY KEY and one with AUTOINCREMENT.",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE standard(id INTEGER PRIMARY KEY, val TEXT); CREATE TABLE autoinc(id INTEGER PRIMARY KEY AUTOINCREMENT, val TEXT);"])
+
+def verify_medium(cur, conn):
+    cur.executemany("INSERT INTO standard(val) VALUES (?)", [('a',),('b',)])
+    cur.executemany("INSERT INTO autoinc(val) VALUES (?)", [('a',),('b',)])
+    cur.execute("DELETE FROM standard WHERE id = (SELECT MAX(id) FROM standard)")
+    cur.execute("DELETE FROM autoinc WHERE id = (SELECT MAX(id) FROM autoinc)")
+    cur.execute("INSERT INTO standard(val) VALUES ('c')")
+    cur.execute("INSERT INTO autoinc(val) VALUES ('c')")
+    cur.execute("SELECT MAX(id) FROM standard")
+    std_max = cur.fetchone()[0]
+    cur.execute("SELECT MAX(id) FROM autoinc")
+    auto_max = cur.fetchone()[0]
+    return std_max < auto_max  # standard may reuse id, autoinc won't
+
+medium = Task("Insert 2 rows each, delete the max id row, insert another. Compare max id values; AUTOINCREMENT should be higher.",
+              verify_medium, Level.MEDIUM,
+              hints=["Standard may reuse id 2, AUTOINCREMENT will be 3."])
+
+def verify_hard(cur, conn):
+    return True  # already verified above
+
+hard = Task("Observe and explain the difference in a comment (type :hint to see expected behavior).",
+            verify_hard, Level.HARD,
+            hints=["Standard reuses the deleted id; AUTOINCREMENT never reuses."])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

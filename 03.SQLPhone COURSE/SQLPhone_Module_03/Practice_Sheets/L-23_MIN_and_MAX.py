@@ -1,53 +1,40 @@
-# L-23_MIN_and_MAX.py
-# SQLPhone Emperor – SQL Module 03
-# Practice: MIN and MAX.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM products")
+    return cur.fetchone()[0] >= 4
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Create table 'products' (id, name, price).")
-    print("Insert at least 4 rows with different prices.")
-    print("Write queries to show the cheapest and most expensive product prices.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        cur.execute("SELECT COUNT(*) FROM products")
-        if cur.fetchone()[0] < 4:
-            print("❌ Need at least 4 rows.")
-            conn.close()
-            return False
-        cur.execute("SELECT MIN(price), MAX(price) FROM products")
-        row = cur.fetchone()
-        if row[0] is not None and row[1] is not None:
-            print(f"✅ Min price: {row[0]}, Max price: {row[1]}")
-            conn.close()
-            return True
-        else:
-            print("❌ Could not retrieve min/max.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("Create table 'products' (id, name, price). Insert at least 4 rows with different prices.",
+            verify_easy, Level.EASY,
+            hints=["CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, price REAL);",
+                   "INSERT INTO products (name, price) VALUES ('P1',10),('P2',50),('P3',30),('P4',70);"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT MIN(price), MAX(price) FROM products")
+    row = cur.fetchone()
+    return row[0] is not None and row[1] is not None
+
+medium = Task("Write a query that returns the cheapest and most expensive product prices.",
+              verify_medium, Level.MEDIUM,
+              hints=["SELECT MIN(price), MAX(price) FROM products;"])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT name, price FROM products WHERE price = (SELECT MIN(price) FROM products)")
+    min_name = cur.fetchone()
+    cur.execute("SELECT name, price FROM products WHERE price = (SELECT MAX(price) FROM products)")
+    max_name = cur.fetchone()
+    return min_name is not None and max_name is not None
+
+hard = Task("Show the name and price of both the cheapest and most expensive products (use subqueries).",
+            verify_hard, Level.HARD,
+            hints=["SELECT name, price FROM products WHERE price = (SELECT MIN(price) FROM products);",
+                   "SELECT name, price FROM products WHERE price = (SELECT MAX(price) FROM products);"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

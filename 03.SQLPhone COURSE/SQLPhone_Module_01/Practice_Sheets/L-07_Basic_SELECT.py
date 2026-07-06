@@ -1,55 +1,36 @@
-# L-07_Basic_SELECT.py
-# SQLPhone Emperor – SQL Module 01
-# Practice: Projection and filtering.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM inventory")
+    return cur.fetchone()[0] >= 3
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: You have a table 'inventory' with columns: id, product, quantity, price.")
-    print("Create the table and insert 3 products.")
-    print("Write a SELECT query that returns product name and total value (quantity*price) for items where quantity > 0.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL (DDL + DML + query):\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    # Verify that the table has data and the computed column query works.
-    try:
-        cur.execute("SELECT COUNT(*) FROM inventory")
-        if cur.fetchone()[0] < 3:
-            print("❌ Need at least 3 products.")
-            conn.close()
-            return False
-        # Check that a SELECT with computed column doesn't fail.
-        cur.execute("SELECT product, quantity * price AS total_value FROM inventory WHERE quantity > 0")
-        row = cur.fetchone()
-        if row:
-            print(f"✅ Query worked. Example row: {row}")
-            conn.close()
-            return True
-        else:
-            print("❌ Query returned no rows. Ensure quantity > 0.")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("Create table 'inventory' (id, product, quantity, price). Insert 3 products.", verify_easy, Level.EASY,
+            hints=["CREATE TABLE inventory (id INTEGER PRIMARY KEY, product TEXT, quantity INTEGER, price REAL);",
+                   "INSERT INTO inventory (product, quantity, price) VALUES ('A',10,1.0),('B',5,2.0),('C',0,3.0);"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT product, quantity*price AS total FROM inventory WHERE quantity>0")
+    rows = cur.fetchall()
+    return len(rows) >= 2
+
+medium = Task("Write a query that shows product name and total value (quantity*price) for items with quantity > 0.",
+              verify_medium, Level.MEDIUM,
+              hints=["SELECT product, quantity*price AS total_value FROM inventory WHERE quantity > 0;"])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT product, quantity*price AS total FROM inventory WHERE quantity>0 ORDER BY total DESC")
+    rows = cur.fetchall()
+    return len(rows) >= 2 and rows[0][1] >= rows[1][1]
+
+hard = Task("Enhance the previous query to sort by total value descending, and only show products where total > 5.",
+            verify_hard, Level.HARD,
+            hints=["ORDER BY total DESC", "HAVING total > 5 (or WHERE quantity*price > 5)"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()

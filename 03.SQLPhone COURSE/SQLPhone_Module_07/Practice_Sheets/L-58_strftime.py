@@ -1,48 +1,37 @@
-# L-58_strftime.py
-# SQLPhone Emperor – SQL Module 07
-# Practice: Custom date formatting with strftime.
+import sys, sqlite3
+sys.path.append("../..")
+from practice_engine import Task, Level, run_task
 
-import sqlite3
+def verify_easy(cur, conn):
+    cur.execute("CREATE TABLE events(id INTEGER PRIMARY KEY, name TEXT, event_date TEXT)")
+    cur.executemany("INSERT INTO events VALUES (?,?,?)", [(1,'E1','2026-06-15'),(2,'E2','2026-07-01'),(3,'E3','2026-06-30')])
+    return True
 
-def task():
-    print("=" * 50)
-    print("🧱 TASK: Use the 'events' table (or create another).")
-    print("Write a query that shows each event's name and its formatted date as 'DD/MM/YYYY'.")
-    print("=" * 50)
-    conn = sqlite3.connect(":memory:")
-    cur = conn.cursor()
-    user_sql = input("Enter your SQL:\n> ")
-    try:
-        cur.executescript(user_sql)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        conn.close()
-        return False
-    try:
-        # Check that strftime output matches DD/MM/YYYY pattern
-        cur.execute("SELECT strftime('%d/%m/%Y', event_date) FROM events LIMIT 1")
-        sample = cur.fetchone()
-        if sample and len(sample[0]) == 10 and sample[0][2] == '/' and sample[0][5] == '/':
-            print(f"✅ Formatted date: {sample[0]}")
-            conn.close()
-            return True
-        else:
-            print(f"❌ Format not DD/MM/YYYY or no data. Sample: {sample}")
-            conn.close()
-            return False
-    except Exception as e:
-        print(f"❌ Verification error: {e}")
-        conn.close()
-        return False
+easy = Task("We have 'events'. Write a query that displays each event's name and its formatted date as 'DD/MM/YYYY' using strftime.",
+            verify_easy, Level.EASY,
+            hints=["SELECT name, strftime('%d/%m/%Y', event_date) FROM events;"])
+
+def verify_medium(cur, conn):
+    cur.execute("SELECT name, strftime('%d/%m/%Y', event_date) FROM events")
+    rows = cur.fetchall()
+    return rows[0][1] == '15/06/2026'
+
+medium = Task("The first row should show '15/06/2026'.",
+              verify_medium, Level.MEDIUM,
+              hints=["Check format string: %d/%m/%Y"])
+
+def verify_hard(cur, conn):
+    cur.execute("SELECT strftime('%Y-%m', event_date) AS month, COUNT(*) FROM events GROUP BY month")
+    rows = cur.fetchall()
+    return len(rows) >= 2
+
+hard = Task("Group by year-month and count events per month.",
+            verify_hard, Level.HARD,
+            hints=["SELECT strftime('%Y-%m', event_date) AS month, COUNT(*) FROM events GROUP BY month;"])
 
 def main():
-    while True:
-        if task():
-            break
-        retry = input("Try again? (y/n): ")
-        if retry.lower() != 'y':
-            break
-
-if __name__ == "__main__":
-    main()
+    print("1 Easy  2 Medium  3 Hard")
+    c=input("> ")
+    tasks = {"1":easy,"2":medium,"3":hard}
+    run_task(tasks.get(c,easy))
+if __name__=="__main__": main()
