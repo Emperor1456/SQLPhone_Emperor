@@ -10,3 +10,11 @@
 - [ ] L‑08 · Comments in SQL
 - [ ] L‑09 · SQL Syntax Rules & Practices
 - [ ] L‑10 · Module Challenge: Imperial                 Fitness DB
+---
+
+## 🏆 Quality Rubric (self‑assess after module)
+- [ ] All constraints (`NOT NULL`, `UNIQUE`, `CHECK`, etc.) used where appropriate.
+- [ ] `INSERT` statements include explicit column lists.
+- [ ] Queries are formatted with uppercase keywords and line breaks.
+- [ ] Comments explain the business logic, not the obvious.
+- [ ] All dot‑commands (`.tables`, `.schema`) used for verification.

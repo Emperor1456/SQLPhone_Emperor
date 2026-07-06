@@ -8,3 +8,11 @@
 - [ ] L‑92 · Expense Tracker
 - [ ] L‑93 · Movie Rating System
 - [ ] L‑94 · Custom Project
+---
+
+## 🏆 Quality Rubric (self‑assess after module)
+- [ ] All constraints used where appropriate.
+- [ ] Queries are formatted cleanly (keywords uppercase, line breaks).
+- [ ] Comments explain business logic, not obvious syntax.
+- [ ] Dot‑commands used to verify schema.
+- [ ] (If Python) Parameterized queries used; no string concatenation.
