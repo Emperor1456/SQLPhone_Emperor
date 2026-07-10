@@ -1,6 +1,4 @@
-# practice_engine.py — Hints & Levels Engine for SQLPhone Emperor
-
-import sqlite3
+import sys, io, textwrap, traceback
 
 class Level:
     EASY = "Easy"
@@ -8,12 +6,17 @@ class Level:
     HARD = "Hard"
 
 class Task:
-    def __init__(self, description, verify_func, level=Level.EASY, hints=None):
+    def __init__(self, description, arg2, level=Level.EASY, hints=None):
         self.description = description
-        self.verify = verify_func
         self.level = level
         self.hints = hints or []
         self.hint_index = 0
+        if callable(arg2):
+            self.verify_func = arg2
+            self.expected_output = None
+        else:
+            self.verify_func = None
+            self.expected_output = arg2.strip()
 
     def next_hint(self):
         if self.hint_index < len(self.hints):
@@ -23,48 +26,83 @@ class Task:
         return None
 
 def run_task(task):
-    print("=" * 50)
+    print("=" * 44)
     print(f"🧱 TASK [{task.level.upper()}]")
-    print(task.description)
-    print("=" * 50)
+    wrapped = textwrap.fill(task.description, width=48,
+                            initial_indent="  📋 ", subsequent_indent="     ")
+    print(wrapped)
+    print("-" * 44)
+
     attempts = 0
     while True:
         attempts += 1
-        user_input = input("Enter your SQL (or :hint, :quit):\n> ")
-        if user_input.strip().lower() == ":hint":
-            hint = task.next_hint()
-            if hint:
-                print(f"💡 HINT: {hint}")
-            else:
-                print("No more hints.")
+        print("
+Enter your code below.")
+        print("(Blank line to finish, :hint, :quit)")
+        lines = []
+        while True:
+            raw = input("... " if lines else ">>> ").rstrip("
+")
+            if raw.strip().lower() in (":quit", "exit"):
+                print("Exiting task.")
+                return False
+            if raw.strip().lower() == ":hint":
+                hint = task.next_hint()
+                if hint:
+                    print(f"💡 HINT: {hint}")
+                else:
+                    print("No more hints.")
+                continue
+            if raw == "":
+                break
+            lines.append(raw)
+        user_code = "
+".join(lines)
+        if not user_code.strip():
+            print("⚠️ No code entered. Try again.")
             continue
-        if user_input.strip().lower() == ":quit":
-            print("Exiting task.")
-            return False
-        # Execute and verify
-        conn = sqlite3.connect(":memory:")
-        cur = conn.cursor()
-        try:
-            cur.executescript(user_input)
-            conn.commit()
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            conn.close()
+
+        # Old style: verify via function
+        if task.verify_func is not None:
+            user_globals = {}
+            try:
+                exec(user_code, user_globals)
+            except Exception as e:
+                print("❌ Error during execution:")
+                traceback.print_exc()
+                continue
+            try:
+                if task.verify_func(user_globals):
+                    print(f"✅ Correct! ({attempts} attempt{'s' if attempts != 1 else ''})")
+                    return True
+                else:
+                    print("❌ Not quite. Try again or type :hint for help.")
+            except Exception as e:
+                print(f"❌ Verification error: {e}")
             continue
+
+        # New style: compare printed output
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        user_globals = {}
         try:
-            result = task.verify(cur, conn)
-            conn.close()
-            if result:
-                print(f"✅ Correct! ({attempts} attempts)")
-                return True
-            else:
-                print("❌ Not quite. Try again or type :hint for help.")
+            exec(user_code, user_globals)
+            output = sys.stdout.getvalue()
         except Exception as e:
-            print(f"❌ Verification error: {e}")
-            conn.close()
+            sys.stdout = old_stdout
+            print("❌ Error during execution:")
+            traceback.print_exc()
+            continue
+        finally:
+            sys.stdout = old_stdout
 
-def main():
-    print("Practice engine loaded. Use `run_task(task)` to start.")
-
-if __name__ == "__main__":
-    main()
+        out_stripped = output.strip()
+        if out_stripped == task.expected_output:
+            print(f"✅ Correct! ({attempts} attempt{'s' if attempts != 1 else ''})")
+            return True
+        else:
+            print("❌ Output mismatch.")
+            print("Expected (first 120 chars):")
+            print(task.expected_output[:120])
+            print("Got (first 120 chars):")
+            print(out_stripped[:120])

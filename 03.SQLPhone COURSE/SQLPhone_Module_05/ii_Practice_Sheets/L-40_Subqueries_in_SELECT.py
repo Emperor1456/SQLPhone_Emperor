@@ -29,9 +29,30 @@ hard = Task("Show only products with price above the average (combine subquery i
             verify_hard, Level.HARD,
             hints=["SELECT name, price, (SELECT AVG(price) FROM products) FROM products WHERE price > (SELECT AVG(price) FROM products);"])
 
+
 def main():
-    print("1 Easy  2 Medium  3 Hard")
-    c=input("> ")
-    tasks = {"1":easy,"2":medium,"3":hard}
-    run_task(tasks.get(c,easy))
+    levels = {"1": easy, "2": medium, "3": hard}
+    while True:
+        print("
+Choose difficulty:")
+        print("1 - Easy")
+        print("2 - Medium")
+        print("3 - Hard")
+        print("0 - Exit")
+        c = input("> ").strip()
+        if c == "0":
+            break
+        task = levels.get(c)
+        if task:
+            run_task(task)
+            cont = input("Try next level? (y/n): ").strip().lower()
+            if cont != "y":
+                continue
+            next_key = str(min(int(c)+1, 3))
+            next_task = levels.get(next_key)
+            if next_task:
+                print(f"
+Moving to {next_task.level}...")
+                run_task(next_task)
+
 if __name__=="__main__": main()

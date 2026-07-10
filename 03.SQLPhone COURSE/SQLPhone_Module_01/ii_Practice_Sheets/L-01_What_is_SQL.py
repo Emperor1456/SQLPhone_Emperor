@@ -60,21 +60,31 @@ hard_task = Task(
     ]
 )
 
+
 def main():
-    print("Choose difficulty:")
-    print("1 - Easy")
-    print("2 - Medium")
-    print("3 - Hard")
-    choice = input("> ").strip()
-    if choice == "1":
-        run_task(easy_task)
-    elif choice == "2":
-        run_task(medium_task)
-    elif choice == "3":
-        run_task(hard_task)
-    else:
-        print("Invalid choice, defaulting to Easy.")
-        run_task(easy_task)
+    levels = {"1": easy, "2": medium, "3": hard}
+    while True:
+        print("
+Choose difficulty:")
+        print("1 - Easy")
+        print("2 - Medium")
+        print("3 - Hard")
+        print("0 - Exit")
+        c = input("> ").strip()
+        if c == "0":
+            break
+        task = levels.get(c)
+        if task:
+            run_task(task)
+            cont = input("Try next level? (y/n): ").strip().lower()
+            if cont != "y":
+                continue
+            next_key = str(min(int(c)+1, 3))
+            next_task = levels.get(next_key)
+            if next_task:
+                print(f"
+Moving to {next_task.level}...")
+                run_task(next_task)
 
 if __name__ == "__main__":
     main()
