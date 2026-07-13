@@ -23,6 +23,7 @@ easy1 = Task(
     ),
     expected_output="[(1, 'Emperor', 5)]",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -51,6 +52,7 @@ easy2 = Task(
     ),
     expected_output="[(3, 'Ali', 'General', 4500.0)]",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -81,6 +83,7 @@ medium1 = Task(
     ),
     expected_output="[(3, 'Ali', 'General', 5000.0)]",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -110,6 +113,7 @@ medium2 = Task(
     ),
     expected_output="[(1, 'Emperor', 'General', 5000.0), (2, 'Rahim', 'Colonel', 4000.0), (3, 'Ali', 'General', 4500.0)]",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -144,6 +148,7 @@ hard1 = Task(
     ),
     expected_output="[]",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -175,6 +180,7 @@ hard2 = Task(
     ),
     expected_output="[(1, 'Emperor', 1), (2, 'Rahim', 2), (3, 'Karim', 1)]",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",

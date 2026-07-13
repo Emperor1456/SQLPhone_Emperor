@@ -19,6 +19,7 @@ easy1 = Task(
     ),
     expected_output="[(42,)]",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "def get_connection(path=':memory:'):",
@@ -50,6 +51,7 @@ easy2 = Task(
     ),
     expected_output="[(1, 'Emperor')]",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "from contextlib import contextmanager",
@@ -94,6 +96,7 @@ medium1 = Task(
     ),
     expected_output="[(1, 'Emperor', 'General'), (2, 'Rahim', 'Colonel')]\n1",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "def get_connection():",
@@ -129,6 +132,7 @@ medium2 = Task(
     ),
     expected_output="[(1, 'Laser')]",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "def execute_sql_file(conn, sql_text):",
@@ -167,6 +171,7 @@ hard1 = Task(
     ),
     expected_output="[{'name': 'Emperor', 'regiment_name': 'Imperial Guard'}, {'name': 'Rahim', 'regiment_name': 'Red Guard'}, {'name': 'Ali', 'regiment_name': 'Red Guard'}]",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "from contextlib import contextmanager",
@@ -225,6 +230,7 @@ hard2 = Task(
     ),
     expected_output="[(1,)]\n[(1,)]",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "def migrate(conn, migrations):",

@@ -22,6 +22,7 @@ easy1 = Task(
     ),
     expected_output="(2, 'Rahim', 'Colonel', 4000.0)",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -49,6 +50,7 @@ easy2 = Task(
     ),
     expected_output="[(1, 'Emperor', 'General', 5000.0), (2, 'Rahim', 'Colonel', 4000.0), (3, 'Ali', 'General', 4500.0), (4, 'Hasan', 'Private', 3500.0)]",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -80,6 +82,7 @@ medium1 = Task(
     ),
     expected_output="[(1, 'Emperor', 'General', 5000.0), (2, 'Rahim', 'Colonel', 4000.0)]\n[(3, 'Ali', 'General', 4500.0), (4, 'Hasan', 'Private', 3500.0)]",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -110,6 +113,7 @@ medium2 = Task(
     ),
     expected_output="[(1, 'Emperor', 'General', 5000.0), (2, 'Rahim', 'Colonel', 4000.0), (3, 'Ali', 'General', 4500.0)]\n[(4, 'Hasan', 'Private', 3500.0)]",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -137,6 +141,7 @@ hard1 = Task(
     ),
     expected_output="Emperor",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -167,6 +172,7 @@ hard2 = Task(
     ),
     expected_output="[(3, 'Ali', 'General', 4500.0), (4, 'Hasan', 'Private', 3500.0)]",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "def paginate(page_size, page_number):",

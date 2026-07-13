@@ -21,6 +21,7 @@ easy1 = Task(
     ),
     expected_output="Duplicate\n[(1, 'Emperor')]",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -48,6 +49,7 @@ easy2 = Task(
     ),
     expected_output="Bad SQL\n[(1,)]",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -77,6 +79,7 @@ medium1 = Task(
     ),
     expected_output="OK\nClosed\nDone",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -106,6 +109,7 @@ medium2 = Task(
     ),
     expected_output="Success",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3, time",
         "def execute_with_retry(conn, sql, params, max_retries=3):",
@@ -142,6 +146,7 @@ hard1 = Task(
     ),
     expected_output="Rolled back\n[(1, 'Emperor', 1000.0), (2, 'Rahim', 500.0)]",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -173,10 +178,14 @@ hard2 = Task(
         "  4. Catches IntegrityError, logs the error to `error_log`\n"
         "     with datetime('now'), and prints 'Error logged'.\n"
         "  5. Finally SELECT * FROM error_log and print.\n\n"
-        "Expected output:\nError logged\n[(1, 'UNIQUE constraint failed: users.email', (timestamp))]"
+        "Note: The timestamp will be today's date in the expected output,\n"
+        "so the expected_output check is omitted; task verifies via verify_func.\n"
     ),
-    expected_output="Error logged\n[(1, 'UNIQUE constraint failed: users.email', '2026-07-12')]",
+    verify_func=lambda conn: (
+        conn.execute("SELECT COUNT(*) FROM error_log").fetchone()[0] == 1
+    ),
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -190,8 +199,7 @@ hard2 = Task(
         "    conn.execute(\"INSERT INTO error_log (message, timestamp) VALUES (?, datetime('now'))\", (str(e),))",
         "    conn.commit()",
         "    print('Error logged')",
-        "cursor = conn.execute('SELECT * FROM error_log')",
-        "print(cursor.fetchall())",
+        "print(conn.execute('SELECT * FROM error_log').fetchall())",
     ]
 )
 

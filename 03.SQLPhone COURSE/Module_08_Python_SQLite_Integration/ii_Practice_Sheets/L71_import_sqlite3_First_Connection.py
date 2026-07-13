@@ -13,16 +13,17 @@ easy1 = Task(
         "in‑memory database (':memory:').\n"
         "Create a cursor, execute a query that returns\n"
         "the SQLite version, fetch the result, and print it.\n\n"
-        "Expected output:\n[(sqlite_version_string,)]"
+        "Expected output: the version string as a tuple."
     ),
     expected_output=None,  # dynamic version string
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
         "cursor = conn.cursor()",
         "cursor.execute('SELECT sqlite_version()')",
-        "print(cursor.fetchone())",
+        "print(cursor.fetchall())",
     ],
     verify_func=lambda conn: (
         conn.execute("SELECT 1").fetchone() is not None
@@ -40,6 +41,7 @@ easy2 = Task(
     ),
     expected_output="[('Emperor',)]",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -65,6 +67,7 @@ medium1 = Task(
     ),
     expected_output="[('soldiers',)]",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -87,6 +90,7 @@ medium2 = Task(
     ),
     expected_output="[('Laser',)]",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "with sqlite3.connect(':memory:') as conn:",
@@ -114,6 +118,7 @@ hard1 = Task(
     ),
     expected_output="Emperor",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "def get_connection(path=':memory:'):",
@@ -142,6 +147,7 @@ hard2 = Task(
     ),
     expected_output="[(3,)]",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",

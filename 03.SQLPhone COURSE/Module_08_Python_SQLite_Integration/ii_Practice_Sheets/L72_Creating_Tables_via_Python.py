@@ -21,6 +21,7 @@ easy1 = Task(
     ),
     expected_output="[(1, 'Laser', 5)]",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -51,6 +52,7 @@ easy2 = Task(
     ),
     expected_output="[(1, 'Emperor', 'General', 5000.0), (2, 'Rahim', 'Private', 3000.0)]",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -78,6 +80,7 @@ medium1 = Task(
     ),
     expected_output="[('regiments',)]",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -101,6 +104,7 @@ medium2 = Task(
     ),
     expected_output="[(1, 'Test', 'Extra')]",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -134,6 +138,7 @@ hard1 = Task(
     ),
     expected_output="[(1, 'Sword', 10)]",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "def create_table_from_dict(conn, table_name, columns):",
@@ -161,6 +166,7 @@ hard2 = Task(
     ),
     expected_output="[('CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL)',)]",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",

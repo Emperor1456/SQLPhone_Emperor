@@ -20,6 +20,7 @@ easy1 = Task(
     ),
     expected_output="[(42,)]",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -45,6 +46,7 @@ easy2 = Task(
     ),
     expected_output="[(1,)]\n[(1,)]",
     level=Level.EASY,
+    mode="python",
     hints=[
         "import sqlite3",
         "conn = sqlite3.connect(':memory:')",
@@ -77,6 +79,7 @@ medium1 = Task(
     ),
     expected_output="[(1, 'Emperor'), (2, 'Rahim')]",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "schema_sql = '''",
@@ -104,6 +107,7 @@ medium2 = Task(
     ),
     expected_output="Script failed\n[(42,)]",
     level=Level.MEDIUM,
+    mode="python",
     hints=[
         "import sqlite3",
         "bad_sql = 'CREATE TABLEX broken (id INTEGER);'",
@@ -139,6 +143,7 @@ hard1 = Task(
     ),
     expected_output="[(1,)]\n[(2,)]",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "def run_migrations(conn, scripts):",
@@ -172,6 +177,7 @@ hard2 = Task(
     ),
     expected_output="[(1, 'Laptop', 999.99), (2, 'Mouse', 24.99), (3, 'Keyboard', 79.99)]\n[(3,)]",
     level=Level.HARD,
+    mode="python",
     hints=[
         "import sqlite3",
         "seed_sql = '''",
